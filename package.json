@@ -13,6 +13,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "better-sqlite3": "^12.9.0",
     "date-fns": "^4.1.0",
     "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^9.0.0",
@@ -30,7 +31,7 @@
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.5.0",
     "concurrently": "^9.2.1",
-    "electron": "^42.0.1",
+    "electron": "^32.3.3",
     "electron-builder": "^26.8.1",
     "eslint": "^10.2.1",
     "eslint-plugin-react-hooks": "^7.1.1",
@@ -42,22 +43,19 @@
     "wait-on": "^9.0.6"
   },
   "build": {
-  "appId": "com.expensetracker.app",
-  "productName": "Expense Tracker",
-
-  "directories": {
-    "output": "release"
-  },
-
-  "files": [
-    "dist/**/*",
-    "electron/**/*",
-    "package.json"
-  ],
-
-  "win": {
-    "target": "nsis"
-  },
-  "icon": "build/Bar.ico"
-}
+    "appId": "com.expensetracker.app",
+    "productName": "Expense Tracker",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "icon": "build/Bar.ico"
+  }
 }
