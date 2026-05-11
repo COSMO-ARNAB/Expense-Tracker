@@ -21,8 +21,8 @@ export const TransactionProvider = ({ children }) => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const savedTransactions = storage.getItemSync('transactions');
-        const savedBudgets = storage.getItemSync('budgets');
+        const savedTransactions = await storage.getItem('transactions');
+        const savedBudgets = await storage.getItem('budgets');
         
         if (savedTransactions) {
           setTransactions(JSON.parse(savedTransactions));
@@ -44,14 +44,14 @@ export const TransactionProvider = ({ children }) => {
   // Save transactions to persistent storage whenever they change
   useEffect(() => {
     if (!isLoading) {
-      storage.setItemSync('transactions', JSON.stringify(transactions));
+      storage.setItem('transactions', JSON.stringify(transactions));
     }
   }, [transactions, isLoading]);
 
   // Save budgets to persistent storage whenever they change
   useEffect(() => {
     if (!isLoading) {
-      storage.setItemSync('budgets', JSON.stringify(budgets));
+      storage.setItem('budgets', JSON.stringify(budgets));
     }
   }, [budgets, isLoading]);
 

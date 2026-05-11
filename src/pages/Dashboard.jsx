@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { useTransactions } from '../contexts/TransactionContext.jsx';
 
 const Dashboard = () => {
-  const { transactions } = useTransactions();
+  const { transactions, isLoading } = useTransactions();
   const [chartData, setChartData] = useState([]);
   const [categoryData, setCategoryData] = useState([]);
   const [totalIncome, setTotalIncome] = useState(0);
@@ -72,8 +72,16 @@ const Dashboard = () => {
 
   // Colors for pie chart
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+  if(isLoading) {
+  return (
+    <div className="p-6 text-lg font-semibold">
+      Loading dashboard...
+    </div>
+  );
+}
 
   return (
+
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
       

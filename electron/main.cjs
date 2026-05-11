@@ -60,10 +60,16 @@ function createWindow() {
       enableRemoteModule: false,
       nodeIntegration: false,
     },
-    icon: path.join(__dirname, '../src/assets/Bar.png') // Updated icon path
+    icon: path.join(__dirname, '../src/assets/Bar-nobg.png') // Updated icon path
   });
 
+  
+
+if (app.isPackaged) {
+  win.loadFile(path.join(__dirname, "../dist/index.html"));
+} else {
   win.loadURL("http://localhost:3000");
+}
 }
 
 // Handle storage IPC requests
