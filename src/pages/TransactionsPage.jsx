@@ -1,102 +1,98 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { useTransactions } from '../contexts/TransactionContext.jsx';
-import { storage } from '../utils/storage.js';
+
+const PREBUILT_CATEGORIES = {
+  Expense: ["Food", "Transport", "Bills", "Entertainment", "Shopping", "Health", "Education", "Others"],
+  Income: ["Salary", "Bonus", "Allowance", "Freelance", "Investment", "Other"]
+};
 
 const TransactionsPage = () => {
-  const { transactions, addTransaction, updateTransaction, deleteTransaction, isLoading } = useTransactions();
+  const { 
+    transactions, 
+    addTransaction, 
+    deleteTransaction, 
+    customCategories, 
+    saveCustomCategory, 
+    isLoading 
+  } = useTransactions();
+
   const [filteredTransactions, setFilteredTransactions] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
+  
+  // Filters State
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterType, setFilterType] = useState('all');
+
+  // New Transaction Form State
   const [newTransaction, setNewTransaction] = useState({
     title: '',
     amount: '',
-    category: 'Food',
-    date: '',
-    type: 'expense'
+    category: '',
+    date: new Date().toISOString().split('T')[0],
+    type: 'Expense' 
   });
 
-  // Mock data for demonstration (populate context only on first app load)
-  useEffect(() => {
-    if (isLoading) return; // Wait for context to load
-    
-    const appInitialized = storage.getItemSync('app-initialized');
-    
-    // Only populate mock data if app hasn't been initialized
-    if (!appInitialized && transactions.length === 0) {
-      const mockTransactions = [
-        { title: 'Grocery Shopping', amount: 150, category: 'Food', date: '2023-05-15', type: 'expense' },
-        { title: 'Electricity Bill', amount: 200, category: 'Bills', date: '2023-05-10', type: 'expense' },
-        { title: 'Salary', amount: 5000, category: 'Income', date: '2023-05-01', type: 'income' },
-        { title: 'Movie Tickets', amount: 200, category: 'Entertainment', date: '2023-05-20', type: 'expense' },
-        { title: 'Freelance Work', amount: 1500, category: 'Income', date: '2023-05-12', type: 'income' },
-        { title: 'Gas', amount: 100, category: 'Transport', date: '2023-05-05', type: 'expense' },
-        { title: 'Dinner Out', amount: 300, category: 'Food', date: '2023-05-25', type: 'expense' },
-        { title: 'Online Shopping', amount: 500, category: 'Shopping', date: '2023-05-18', type: 'expense' },
-      ];
-      mockTransactions.forEach(t => {
-        addTransaction({ ...t, id: Date.now() + Math.floor(Math.random() * 10000) });
-      });
-      storage.setItemSync('app-initialized', 'true');
-    } else if (!appInitialized) {
-      // If app wasn't marked initialized, mark it now
-      storage.setItemSync('app-initialized', 'true');
-    }
-  }, [isLoading, transactions.length, addTransaction]);
+  const [customName, setCustomName] = useState("");
+  const [shouldSave, setShouldSave] = useState(false);
+
+  // Get categories based on selected Type
+  const availableCategories = [
+    ...(PREBUILT_CATEGORIES[newTransaction.type] || []),
+    ...customCategories.filter(c => c.type === newTransaction.type).map(c => c.name),
+    "Custom"
+  ];
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setNewTransaction({
-      ...newTransaction,
-      [name]: value
-    });
+    if (name === 'type') {
+      setNewTransaction(prev => ({ ...prev, [name]: value, category: '' }));
+    } else {
+      setNewTransaction(prev => ({ ...prev, [name]: value }));
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!newTransaction.title || !newTransaction.amount) {
+    if (!newTransaction.title || !newTransaction.amount || !newTransaction.category) {
       alert('Please fill in all required fields');
       return;
     }
-    const transaction = {
+
+    let finalCategory = newTransaction.category;
+    if (newTransaction.category === "Custom") {
+      finalCategory = customName;
+      if (shouldSave) {
+        await saveCustomCategory({
+          id: Date.now().toString(),
+          name: customName,
+          type: newTransaction.type
+        });
+      }
+    }
+
+    await addTransaction({
       ...newTransaction,
-      id: Date.now() + Math.random(),
+      id: Date.now().toString(),
       amount: parseFloat(newTransaction.amount),
-      date: newTransaction.date || new Date().toISOString().split('T')[0]
-    };
-    addTransaction(transaction);
-    setNewTransaction({
-      title: '',
-      amount: '',
-      category: 'Food',
-      date: '',
-      type: 'expense'
+      category: finalCategory,
     });
+    
+    setNewTransaction({ title: '', amount: '', category: '', date: new Date().toISOString().split('T')[0], type: 'Expense' });
+    setCustomName("");
+    setShouldSave(false);
     setShowAddForm(false);
   };
 
-  const handleDelete = (id) => {
-    deleteTransaction(id);
-  };
-
-  const categories = ['Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Health', 'Education', 'Others'];
-  const types = ['expense', 'income'];
-
-  // Apply filters to context transactions
+  // Filter Logic
   useEffect(() => {
     let filtered = transactions || [];
-
-    if (filterCategory !== 'all') {
-      filtered = filtered.filter(t => t.category === filterCategory);
-    }
-
-    if (filterType !== 'all') {
-      filtered = filtered.filter(t => t.type === filterType);
-    }
-
+    if (filterCategory !== 'all') filtered = filtered.filter(t => t.category === filterCategory);
+    if (filterType !== 'all') filtered = filtered.filter(t => t.type.toLowerCase() === filterType.toLowerCase());
     setFilteredTransactions(filtered);
   }, [filterCategory, filterType, transactions]);
+
+  if (isLoading) return <div className="p-6 text-center text-gray-500">Loading Transactions...</div>;
 
   return (
     <div className="space-y-6">
@@ -112,170 +108,87 @@ const TransactionsPage = () => {
 
       {/* Add Transaction Form */}
       {showAddForm && (
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Add New Transaction</h2>
+        <div className="bg-white p-6 rounded-lg shadow-lg border-t-4 border-blue-600">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">New Entry</h2>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-              <input
-                type="text"
-                name="title"
-                value={newTransaction.title}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-              <input
-                type="number"
-                name="amount"
-                value={newTransaction.amount}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                required
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+              <select name="type" value={newTransaction.type} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-md">
+                <option value="Expense">Expense</option>
+                <option value="Income">Income</option>
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-              <select
-                name="category"
-                value={newTransaction.category}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              >
-                {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
+              <select name="category" value={newTransaction.category} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-md" required>
+                <option value="">Select Category</option>
+                {availableCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-              <select
-                name="type"
-                value={newTransaction.type}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              >
-                {types.map(type => (
-                  <option key={type} value={type}>{type.charAt(0).toUpperCase() + type.slice(1)}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-              <input
-                type="date"
-                name="date"
-                value={newTransaction.date}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
+            {newTransaction.category === "Custom" && (
+              <div className="md:col-span-2 bg-gray-50 p-4 rounded-md border border-dashed border-gray-300">
+                <input type="text" value={customName} onChange={(e) => setCustomName(e.target.value)} className="w-full px-3 py-2 border rounded-md mb-2" placeholder="Category Name" required />
+                <label className="flex items-center text-sm text-gray-600">
+                  <input type="checkbox" checked={shouldSave} onChange={(e) => setShouldSave(e.target.checked)} className="mr-2" />
+                  Save for future use
+                </label>
+              </div>
+            )}
+            <input type="text" name="title" placeholder="Title" value={newTransaction.title} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-md" required />
+            <input type="number" name="amount" placeholder="Amount" value={newTransaction.amount} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-md" required />
             <div className="md:col-span-2">
-              <button
-                type="submit"
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition"
-              >
-                Add Transaction
-              </button>
+              <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg transition">Save</button>
             </div>
           </form>
         </div>
       )}
 
-      {/* Filters */}
+      {/* Filters Section */}
       <div className="bg-white p-6 rounded-lg shadow">
         <h2 className="text-xl font-semibold text-gray-800 mb-4">Filters</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            >
-              <option value="all">All Categories</option>
-              {categories.map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            >
-              <option value="all">All Types</option>
-              {types.map(type => (
-                <option key={type} value={type}>{type.charAt(0).toUpperCase() + type.slice(1)}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-end">
-            <button
-              onClick={() => {
-                setFilterCategory('all');
-                setFilterType('all');
-              }}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md transition"
-            >
-              Reset Filters
-            </button>
-          </div>
+        <div className="flex gap-4">
+          <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="px-3 py-2 border rounded-md">
+            <option value="all">All Types</option>
+            <option value="expense">Expenses</option>
+            <option value="income">Income</option>
+          </select>
+          <button onClick={() => { setFilterCategory('all'); setFilterType('all'); }} className="text-sm text-blue-600">Reset</button>
         </div>
       </div>
 
-      {/* Transaction List */}
+      {/* Transaction History Table */}
       <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Transaction History</h2>
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">History</h2>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredTransactions.map((transaction) => (
-                <tr key={transaction.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {format(new Date(transaction.date), 'MMM dd, yyyy')}
+              {filteredTransactions.map((t) => (
+                <tr key={t.id}>
+                  <td className="px-6 py-4 text-sm text-gray-500">{format(new Date(t.date), 'MMM dd, yyyy')}</td>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{t.title}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{t.category}</td>
+                  <td className={`px-6 py-4 text-sm font-bold ${t.type.toLowerCase() === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                    {t.type.toLowerCase() === 'income' ? '+' : '-'}₹{Number(t.amount).toLocaleString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {transaction.title}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {transaction.category}
-                  </td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                    {transaction.type === 'income' ? '+' : '-'}₹{transaction.amount.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${transaction.type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {transaction.type}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={() => handleDelete(transaction.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Delete
-                    </button>
+                  <td className="px-6 py-4">
+                    <button onClick={() => deleteTransaction(t.id)} className="text-red-500 hover:text-red-700 text-sm">Delete</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {filteredTransactions.length === 0 && (
+            <div className="text-center py-10 text-gray-400">No transactions found.</div>
+          )}
         </div>
       </div>
     </div>

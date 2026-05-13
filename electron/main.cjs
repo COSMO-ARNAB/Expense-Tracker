@@ -220,4 +220,48 @@ ipcMain.handle("db:deleteBudget", (event, id) => {
   }
 });
 
+// --- Custom Category Handlers ---
+
+/**
+ * Get all saved custom categories
+ */
+ipcMain.handle("db:getCustomCategories", () => {
+  try {
+    const stmt = db.prepare("SELECT * FROM custom_categories");
+    return stmt.all();
+  } catch (error) {
+    console.error("Error fetching custom categories:", error);
+    return []; // Return empty array if table doesn't exist yet
+  }
+});
+
+/**
+ * Save a new custom category
+ */
+ipcMain.handle("db:addCustomCategory", (event, category) => {
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO custom_categories (id, name, type)
+      VALUES (?, ?, ?)
+    `);
+    
+    stmt.run(category.id, category.name, category.type);
+    return { success: true };
+  } catch (error) {
+    console.error("Error adding custom category:", error);
+    throw new Error(`Failed to add category: ${error.message}`);
+  }
+});
+
+ipcMain.handle("db:deleteCustomCategory", (event, id) => {
+  try {
+    const stmt = db.prepare("DELETE FROM custom_categories WHERE id = ?");
+    stmt.run(id);
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting custom category:", error);
+    throw new Error(`Failed to delete category: ${error.message}`);
+  }
+});
+
 app.whenReady().then(createWindow);

@@ -13,7 +13,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteTransaction: (id) => ipcRenderer.invoke('db:deleteTransaction', id),
     getBudgets: () => ipcRenderer.invoke('db:getBudgets'),
     addBudget: (budget) => ipcRenderer.invoke('db:addBudget', budget),
-    deleteBudget: (id) => ipcRenderer.invoke('db:deleteBudget', id)
+    deleteBudget: (id) => ipcRenderer.invoke('db:deleteBudget', id),
+
+    getCustomCategories: () => ipcRenderer.invoke('db:getCustomCategories'),
+    addCustomCategory: (category) => ipcRenderer.invoke('db:addCustomCategory', category),
+    deleteCustomCategory: (id) => ipcRenderer.invoke("db:deleteCustomCategory", id),
   }
 });
 

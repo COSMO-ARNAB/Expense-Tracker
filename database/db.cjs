@@ -16,7 +16,18 @@ db.prepare(`
     type TEXT NOT NULL,
     date TEXT NOT NULL
   )
+  
 `).run();
+
+// Add this to your database initialization script
+db.exec(`
+  CREATE TABLE IF NOT EXISTS custom_categories (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,
+    UNIQUE(name, type)
+  )
+`);
 
 // Create budgets table
 db.prepare(`

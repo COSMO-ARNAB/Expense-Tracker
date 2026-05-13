@@ -14,6 +14,7 @@ export const TransactionProvider = ({ children }) => {
   const [transactions, setTransactions] = useState([]);
   const [budgets, setBudgets] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [customCategories, setCustomCategories] = useState([]); //custom categories state
 
   // Load data from SQLite on mount
   useEffect(() => {
@@ -21,9 +22,11 @@ export const TransactionProvider = ({ children }) => {
       try {
         const txs = await window.electronAPI.db.getTransactions();
         const bds = await window.electronAPI.db.getBudgets();
+        const cc = await window.electronAPI.db.getCustomCategories();
 
         if (txs) setTransactions(txs);
         if (bds) setBudgets(bds);
+        if (cc) setCustomCategories(cc);
       } catch (error) {
         console.error('Error loading data from SQLite:', error);
       } finally {
@@ -72,6 +75,26 @@ export const TransactionProvider = ({ children }) => {
     setBudgets(prev => prev.filter(b => b.id !== id));
   };
 
+  // Save custom category to DB and state
+  const saveCustomCategory = async (category) => {
+    try {
+      await window.electronAPI.db.addCustomCategory(category);
+      setCustomCategories(prev => [...prev, category]);
+    } catch (error) {
+      console.error("Failed to save custom category:", error);
+    }
+  };
+
+  // Delete custom category from DB and state
+  const removeCustomCategory = async (id) => {
+    try {
+      await window.electronAPI.db.deleteCustomCategory(id);
+      setCustomCategories(prev => prev.filter(c => c.id !== id));
+    } catch (error) {
+      console.error("Failed to delete custom category:", error);
+    }
+  };
+
   return (
     <TransactionContext.Provider value={{
       transactions,
@@ -82,6 +105,9 @@ export const TransactionProvider = ({ children }) => {
       addBudget,
       updateBudget,
       deleteBudget,
+      customCategories,
+      saveCustomCategory, // Expose saveCustomCategory to context
+      removeCustomCategory, // Expose removeCustomCategory to context
       isLoading
     }}>
       {children}
