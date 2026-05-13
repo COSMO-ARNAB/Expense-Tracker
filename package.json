@@ -43,6 +43,7 @@
     "wait-on": "^9.0.6"
   },
   "build": {
+    "electronDist": "node_modules/electron/dist", 
     "appId": "com.expensetracker.app",
     "productName": "Expense Tracker",
     "directories": {
@@ -51,6 +52,7 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
+      "database/**/*",
       "package.json"
     ],
     "win": {
