@@ -1,221 +1,239 @@
-import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
-import { format, subDays } from 'date-fns';
+import React, { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import { useTransactions } from '../contexts/TransactionContext.jsx';
+import { 
+  startOfWeek, endOfWeek, 
+  startOfMonth, endOfMonth, 
+  startOfYear, endOfYear, 
+  isWithinInterval, format, parseISO
+} from 'date-fns';
+import { 
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip, 
+  LineChart, Line, XAxis, YAxis, CartesianGrid 
+} from 'recharts';
+import { TrendingUp, TrendingDown, PieChart as PieIcon, Activity } from 'lucide-react';
+
+const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
 
 const Reports = () => {
-  const [timeRange, setTimeRange] = useState('month');
-  const [reportData, setReportData] = useState({});
-  const [categoryData, setCategoryData] = useState([]);
+  const { transactions, isLoading } = useTransactions();
+  const [timeframe, setTimeframe] = useState('Monthly'); // Weekly, Monthly, Yearly
 
-  // Mock data for demonstration
-  useEffect(() => {
-    // Mock transaction data for reports
-    const mockTransactions = [
-      { id: 1, title: 'Grocery Shopping', amount: 150, category: 'Food', date: '2023-05-15', type: 'expense' },
-      { id: 2, title: 'Electricity Bill', amount: 200, category: 'Bills', date: '2023-05-10', type: 'expense' },
-      { id: 3, title: 'Salary', amount: 5000, category: 'Income', date: '2023-05-01', type: 'income' },
-      { id: 4, title: 'Movie Tickets', amount: 200, category: 'Entertainment', date: '2023-05-20', type: 'expense' },
-      { id: 5, title: 'Freelance Work', amount: 1500, category: 'Income', date: '2023-05-12', type: 'income' },
-      { id: 6, title: 'Gas', amount: 100, category: 'Transport', date: '2023-05-05', type: 'expense' },
-      { id: 7, title: 'Dinner Out', amount: 300, category: 'Food', date: '2023-05-25', type: 'expense' },
-      { id: 8, title: 'Online Shopping', amount: 500, category: 'Shopping', date: '2023-05-18', type: 'expense' },
-    ];
+  // 1. STRICT DATE FILTERING (Fixes the 2023 "Ghost Data" bug)
+  const filteredData = useMemo(() => {
+    const now = new Date(); // Evaluates to Current Date (e.g., May 2026)
+    let interval;
 
-    // Generate report data based on time range
-    let filteredData = mockTransactions;
-    
-    if (timeRange === 'week') {
-      const oneWeekAgo = subDays(new Date(), 7);
-      filteredData = mockTransactions.filter(t => new Date(t.date) >= oneWeekAgo);
-    } else if (timeRange === 'month') {
-      const oneMonthAgo = subDays(new Date(), 30);
-      filteredData = mockTransactions.filter(t => new Date(t.date) >= oneMonthAgo);
+    if (timeframe === 'Weekly') {
+      interval = { start: startOfWeek(now), end: endOfWeek(now) };
+    } else if (timeframe === 'Monthly') {
+      interval = { start: startOfMonth(now), end: endOfMonth(now) };
+    } else {
+      interval = { start: startOfYear(now), end: endOfYear(now) };
     }
 
-    // Calculate total income and expenses
-    const totalIncome = filteredData
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
+    return transactions.filter(t => isWithinInterval(new Date(t.date), interval))
+                       .sort((a, b) => new Date(b.date) - new Date(a.date)); // Newest first
+  }, [transactions, timeframe]);
 
-    const totalExpenses = filteredData
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
+  // 2. AGGREGATE DATA (Cards & Charts)
+  const stats = useMemo(() => {
+    let income = 0;
+    let expenses = 0;
+    const categoryMap = {};
+    const trendMap = {};
 
-    // Group data by category for pie chart
-    const categoryTotals = filteredData.reduce((acc, transaction) => {
-      if (transaction.type === 'expense') {
-        acc[transaction.category] = (acc[transaction.category] || 0) + transaction.amount;
+    filteredData.forEach(t => {
+      const amount = Number(t.amount);
+      const isExpense = t.type.toLowerCase() === 'expense';
+      
+      // Totals
+      if (isExpense) expenses += amount;
+      else income += amount;
+
+      // Pie Chart (Category Breakdown)
+      if (isExpense) {
+        categoryMap[t.category] = (categoryMap[t.category] || 0) + amount;
       }
-      return acc;
-    }, {});
 
-    const categoryChartData = Object.entries(categoryTotals).map(([name, value]) => ({
-      name,
-      value
-    }));
-
-    // Generate line chart data for monthly trend
-    const monthlyData = [];
-    for (let i = 11; i >= 0; i--) {
-      const date = subDays(new Date(), i * 30);
-      const month = format(date, 'MMM yyyy');
-      monthlyData.push({
-        month,
-        income: Math.random() * 10000,
-        expenses: Math.random() * 5000
-      });
-    }
-
-    setReportData({
-      totalIncome,
-      totalExpenses,
-      net: totalIncome - totalExpenses,
-      transactions: filteredData
+      // Line Chart (Trend Analysis)
+      // If Yearly -> group by Month (Jan). If Monthly/Weekly -> group by Date (May 14)
+      const dateKey = timeframe === 'Yearly' 
+        ? format(new Date(t.date), 'MMM') 
+        : format(new Date(t.date), 'MMM dd');
+      
+      if (!trendMap[dateKey]) trendMap[dateKey] = { date: dateKey, income: 0, expenses: 0 };
+      
+      if (isExpense) trendMap[dateKey].expenses += amount;
+      else trendMap[dateKey].income += amount;
     });
 
-    setCategoryData(categoryChartData);
-  }, [timeRange]);
+    // Formatting for Recharts
+    const pieData = Object.keys(categoryMap).map(name => ({ name, value: categoryMap[name] }));
+    const trendData = Object.values(trendMap).reverse(); // Oldest to Newest for the line chart X-Axis
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#8B4513', '#9370DB', '#20B2AA'];
+    return { income, expenses, savings: income - expenses, pieData, trendData };
+  }, [filteredData, timeframe]);
+
+  if (isLoading) return <div className="p-8 pt-16 text-center text-slate-400 animate-pulse">Analyzing Data...</div>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-800">Reports</h1>
-        <div className="flex space-x-2">
-          <button
-            onClick={() => setTimeRange('week')}
-            className={`px-4 py-2 rounded-md ${timeRange === 'week' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-          >
-            Weekly
-          </button>
-          <button
-            onClick={() => setTimeRange('month')}
-            className={`px-4 py-2 rounded-md ${timeRange === 'month' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-          >
-            Monthly
-          </button>
-          <button
-            onClick={() => setTimeRange('year')}
-            className={`px-4 py-2 rounded-md ${timeRange === 'year' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-          >
-            Yearly
-          </button>
-        </div>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-medium text-gray-800 mb-2">Total Income</h3>
-          <p className="text-3xl font-bold text-green-600">₹{reportData.totalIncome?.toLocaleString() || 0}</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-medium text-gray-800 mb-2">Total Expenses</h3>
-          <p className="text-3xl font-bold text-red-600">₹{reportData.totalExpenses?.toLocaleString() || 0}</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-medium text-gray-800 mb-2">Net Savings</h3>
-          <p className={`text-3xl font-bold ${reportData.net && reportData.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            ₹{reportData.net?.toLocaleString() || 0}
-          </p>
-        </div>
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Expense by Category */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Expenses by Category</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={categoryData}
-                cx="50%"
-                cy="50%"
-                labelLine={true}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-              >
-                {categoryData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="p-8 pt-12 max-w-7xl mx-auto space-y-8" // pt-12 fixes the top border touching
+    >
+      {/* HEADER SECTION */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Financial Reports</h1>
+          <p className="text-slate-500 text-sm">Showing activity for the current {timeframe.toLowerCase()}.</p>
         </div>
 
-        {/* Income vs Expenses Trend */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Income vs Expenses Trend</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart
-              data={[
-                { month: 'Jan', income: 4000, expenses: 2400 },
-                { month: 'Feb', income: 3000, expenses: 1398 },
-                { month: 'Mar', income: 2000, expenses: 9800 },
-                { month: 'Apr', income: 2780, expenses: 3908 },
-                { month: 'May', income: 1890, expenses: 4800 },
-                { month: 'Jun', income: 2390, expenses: 3800 },
-                { month: 'Jul', income: 3490, expenses: 4300 },
-              ]}
+        {/* TIMEFRAME TOGGLE */}
+        <div className="bg-slate-100 p-1.5 rounded-2xl flex gap-1 shadow-inner border border-slate-200">
+          {['Weekly', 'Monthly', 'Yearly'].map(t => (
+            <button
+              key={t}
+              onClick={() => setTimeframe(t)}
+              className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${
+                timeframe === t 
+                ? 'bg-white text-indigo-600 shadow-sm border border-slate-100' 
+                : 'text-slate-500 hover:text-slate-800'
+              }`}
             >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="income" stroke="#00C49F" strokeWidth={2} />
-              <Line type="monotone" dataKey="expenses" stroke="#FF6B6B" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
+              {t}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Detailed Transaction List */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Transaction History</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {reportData.transactions?.map((transaction) => (
-                <tr key={transaction.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {format(new Date(transaction.date), 'MMM dd, yyyy')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {transaction.title}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {transaction.category}
-                  </td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                    {transaction.type === 'income' ? '+' : '-'}₹{transaction.amount.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${transaction.type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {transaction.type}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* SUMMARY CARDS (Your Original Logic) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard title="Total Income" value={stats.income} color="text-emerald-600" icon={<TrendingUp size={16}/>} />
+        <StatCard title="Total Expenses" value={stats.expenses} color="text-rose-600" icon={<TrendingDown size={16}/>} />
+        <StatCard title="Net Savings" value={stats.savings} color="text-slate-900" isSavings />
+      </div>
+
+      {/* CHART SECTION */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        {/* Pie Chart: Expenses by Category */}
+        <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
+          <h3 className="font-bold text-slate-800 mb-6 text-lg flex items-center gap-2">
+            <PieIcon size={20} className="text-indigo-500" /> Expenses by Category
+          </h3>
+          <div className="h-[300px]">
+            {stats.pieData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={stats.pieData}
+                    innerRadius={70}
+                    outerRadius={100}
+                    paddingAngle={8}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    labelLine={false}
+                  >
+                    {stats.pieData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} strokeWidth={0} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyDataState />
+            )}
+          </div>
+        </div>
+
+        {/* Line Chart: Income vs Expenses Trend (Restored your specific request) */}
+        <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
+          <h3 className="font-bold text-slate-800 mb-6 text-lg flex items-center gap-2">
+            <Activity size={20} className="text-indigo-500" /> Income vs Expenses Trend
+          </h3>
+          <div className="h-[300px]">
+            {stats.trendData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={stats.trendData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                  <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                  <Line type="monotone" dataKey="income" stroke="#10b981" strokeWidth={3} dot={{r:4, fill:'#10b981', strokeWidth:0}} activeDot={{r:6}} name="Income" />
+                  <Line type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={3} dot={{r:4, fill:'#ef4444', strokeWidth:0}} activeDot={{r:6}} name="Expenses" />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyDataState />
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* DETAILED TRANSACTION LIST (Restored from your old code, styled modern) */}
+      <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+        <h3 className="font-bold text-slate-800 mb-6 text-lg">Transaction History</h3>
+        {filteredData.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-100 text-slate-400 text-xs uppercase tracking-wider">
+                  <th className="pb-4 font-bold">Date</th>
+                  <th className="pb-4 font-bold">Description</th>
+                  <th className="pb-4 font-bold">Category</th>
+                  <th className="pb-4 font-bold">Type</th>
+                  <th className="pb-4 font-bold text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {filteredData.map(t => (
+                  <tr key={t.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="py-4 text-sm text-slate-500">{format(new Date(t.date), 'MMM dd, yyyy')}</td>
+                    <td className="py-4 text-sm font-bold text-slate-900">{t.title}</td>
+                    <td className="py-4 text-sm text-slate-500">{t.category}</td>
+                    <td className="py-4">
+                      <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider
+                        ${t.type.toLowerCase() === 'income' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                        {t.type}
+                      </span>
+                    </td>
+                    <td className={`py-4 text-sm font-bold text-right ${t.type.toLowerCase() === 'income' ? 'text-emerald-600' : 'text-slate-900'}`}>
+                      {t.type.toLowerCase() === 'income' ? '+' : '-'}₹{Number(t.amount).toLocaleString('en-IN')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-slate-400 text-sm">No transactions to display for this period.</div>
+        )}
+      </div>
+    </motion.div>
   );
 };
+
+// Sub-components
+const StatCard = ({ title, value, color, icon, isSavings }) => (
+  <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+    <div className="flex items-center gap-2 mb-2">
+      <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{title}</span>
+      <span className={color}>{icon}</span>
+    </div>
+    <p className={`text-3xl font-black ${isSavings && value < 0 ? 'text-rose-600' : color}`}>
+      ₹{value.toLocaleString('en-IN')}
+    </p>
+  </div>
+);
+
+const EmptyDataState = () => (
+  <div className="h-full flex flex-col items-center justify-center text-slate-400">
+    <PieIcon size={48} className="mb-2 opacity-20" />
+    <p className="text-sm font-medium italic">No data available.</p>
+  </div>
+);
 
 export default Reports;

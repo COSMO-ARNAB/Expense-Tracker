@@ -1,219 +1,188 @@
-import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Target, Plus, Trash2, Wallet, 
+  BarChart3, PieChart as PieIcon, Calendar 
+} from 'lucide-react';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, 
+  Tooltip, ResponsiveContainer, PieChart, Pie, Cell 
+} from 'recharts';
+import { useTransactions } from '../contexts/TransactionContext.jsx';
+
+const PREBUILT_CATEGORIES = ["Food", "Transport", "Shopping", "Bills", "Entertainment", "Health", "Education", "Others"];
+const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+
+// 1. HELPER OUTSIDE COMPONENT (For Performance)
+const getMonthBoundaries = () => {
+  const now = new Date();
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+  return { firstDay, lastDay };
+};
+
+const boundaries = getMonthBoundaries();
 
 const Budget = () => {
-  const [budgets, setBudgets] = useState([]);
-  const [filteredBudgets, setFilteredBudgets] = useState([]);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newBudget, setNewBudget] = useState({
-    category: 'Food',
-    amount: '',
-    startDate: '',
-    endDate: ''
+  const { budgets, transactions, addBudget, deleteBudget, customCategories, isLoading } = useTransactions();
+  
+  const [showForm, setShowForm] = useState(false);
+  
+  // 2. STATE WITH SMART DEFAULTS (May 1st to May 31st)
+  const [formData, setFormData] = useState({ 
+    category: 'Food', 
+    amount: '', 
+    startDate: boundaries.firstDay,
+    endDate: boundaries.lastDay
   });
 
-  // Mock data for demonstration
-  useEffect(() => {
-    const mockBudgets = [
-      { id: 1, category: 'Food', amount: 5000, spent: 3200, startDate: '2023-05-01', endDate: '2023-05-31' },
-      { id: 2, category: 'Transport', amount: 2000, spent: 1500, startDate: '2023-05-01', endDate: '2023-05-31' },
-      { id: 3, category: 'Entertainment', amount: 1500, spent: 800, startDate: '2023-05-01', endDate: '2023-05-31' },
-      { id: 4, category: 'Bills', amount: 3000, spent: 2200, startDate: '2023-05-01', endDate: '2023-05-31' },
-    ];
-    setBudgets(mockBudgets);
-    setFilteredBudgets(mockBudgets);
-  }, []);
+  // 3. UPDATED LOGIC (Fixes the Uber Transport bug)
+  const budgetStats = useMemo(() => {
+    return budgets.map(budget => {
+      const start = new Date(budget.startDate);
+      const end = new Date(budget.endDate);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewBudget({
-      ...newBudget,
-      [name]: value
+      const spent = transactions
+        .filter(t => {
+          const txDate = new Date(t.date);
+          return (
+            t.category === budget.category && 
+            t.type === 'Expense' &&
+            txDate >= start && // Fix: Must be on or after start
+            txDate <= end      // Fix: Must be on or before end
+          );
+        })
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      
+      const percentage = Math.min((spent / budget.amount) * 100, 100);
+      return { ...budget, spent, percentage };
     });
-  };
+  }, [budgets, transactions]);
 
-  const handleSubmit = (e) => {
+  const chartData = useMemo(() => budgetStats.map(b => ({
+    name: b.category,
+    budget: b.amount,
+    spent: b.spent,
+    remaining: Math.max(0, b.amount - b.spent)
+  })), [budgetStats]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const budget = {
-      ...newBudget,
-      id: budgets.length + 1,
-      amount: parseFloat(newBudget.amount),
-      spent: 0
-    };
-    setBudgets([...budgets, budget]);
-    setNewBudget({
-      category: 'Food',
-      amount: '',
-      startDate: '',
-      endDate: ''
+    if (!formData.amount || !formData.category) return;
+    
+    await addBudget({
+      id: Date.now().toString(),
+      ...formData,
+      amount: parseFloat(formData.amount)
     });
-    setShowAddForm(false);
+    
+    // Reset to defaults after saving
+    setFormData({ 
+      category: 'Food', 
+      amount: '', 
+      startDate: boundaries.firstDay,
+      endDate: boundaries.lastDay
+    });
+    setShowForm(false);
   };
 
-  const handleDelete = (id) => {
-    setBudgets(budgets.filter(budget => budget.id !== id));
+  // 4. UPDATED LABEL THRESHOLDS (Only red at 100%)
+  const getStatusStyles = (pct) => {
+    if (pct >= 100) return { bg: 'bg-rose-100', text: 'text-rose-700', bar: 'bg-rose-500', label: 'Exceeded' };
+    if (pct >= 85) return { bg: 'bg-amber-100', text: 'text-amber-700', bar: 'bg-amber-500', label: 'Danger Zone' };
+    return { bg: 'bg-emerald-100', text: 'text-emerald-700', bar: 'bg-emerald-500', label: 'On Track' };
   };
 
-  const categories = ['Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Health', 'Education', 'Others'];
-  const progressPercentage = (budget) => {
-    return Math.min((budget.spent / budget.amount) * 100, 100);
-  };
-
-  const getStatusColor = (percentage) => {
-    if (percentage >= 90) return 'bg-red-600';
-    if (percentage >= 75) return 'bg-yellow-500';
-    return 'bg-green-500';
-  };
-
-  // Prepare data for charts
-  const chartData = budgets.map(budget => ({
-    name: budget.category,
-    budget: budget.amount,
-    spent: budget.spent,
-    remaining: budget.amount - budget.spent
-  }));
-
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#8B4513', '#9370DB', '#20B2AA'];
+  if (isLoading) return <div className="p-8 text-center text-slate-400 animate-pulse">Loading Budgets...</div>;
 
   return (
-    <div className="space-y-6">
+    <motion.div 
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="p-8 max-w-7xl mx-auto space-y-8"
+    >
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-800">Budget</h1>
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Budgeting</h1>
+          <p className="text-slate-500 text-sm mt-1">Plan your limits and track distribution.</p>
+        </div>
         <button 
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
+          onClick={() => setShowForm(!showForm)}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold transition shadow-lg shadow-indigo-100 flex items-center gap-2"
         >
-          {showAddForm ? 'Cancel' : 'Add Budget'}
+          {showForm ? 'Cancel' : <><Plus size={18} /> Add Budget</>}
         </button>
       </div>
 
-      {/* Add Budget Form */}
-      {showAddForm && (
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Add New Budget</h2>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-              <select
-                name="category"
-                value={newBudget.category}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              >
-                {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-              <input
-                type="number"
-                name="amount"
-                value={newBudget.amount}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-              <input
-                type="date"
-                name="startDate"
-                value={newBudget.startDate}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-              <input
-                type="date"
-                name="endDate"
-                value={newBudget.endDate}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                required
-              />
-            </div>
-            <div className="md:col-span-2">
-              <button
-                type="submit"
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition"
-              >
-                Add Budget
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Budget Overview */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Budget Overview</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {budgets.map((budget) => {
-            const percentage = progressPercentage(budget);
-            return (
-              <div key={budget.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="font-medium text-gray-800">{budget.category}</h3>
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${percentage >= 90 ? 'bg-red-100 text-red-800' : percentage >= 75 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
-                    {percentage.toFixed(1)}% used
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
-                  <div 
-                    className={`h-2.5 rounded-full ${getStatusColor(percentage)}`} 
-                    style={{ width: `${percentage}%` }}
-                  ></div>
-                </div>
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>₹{budget.spent.toLocaleString()} spent</span>
-                  <span>₹{budget.amount.toLocaleString()} budget</span>
-                </div>
+      <AnimatePresence>
+        {showForm && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+            className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl overflow-hidden"
+          >
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Category</label>
+                <select 
+                  value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                >
+                  {[...PREBUILT_CATEGORIES, ...customCategories.map(c => c.name)].map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
               </div>
-            );
-          })}
-        </div>
-      </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Amount (₹)</label>
+                <input 
+                  type="number" value={formData.amount} onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="0.00" required 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Start Date</label>
+                <input 
+                  type="date" value={formData.startDate} onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" required 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">End Date</label>
+                <input 
+                  type="date" value={formData.endDate} onChange={(e) => setFormData({...formData, endDate: e.target.value})}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" required 
+                />
+              </div>
+              <div className="md:col-span-4">
+                <button type="submit" className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition">Save Budget Target</button>
+              </div>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Budget vs Spent Chart */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Budget vs Spent</h3>
+        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><BarChart3 size={20} className="text-indigo-500" /> Budget vs Spent</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="budget" fill="#0088FE" name="Budget" />
-              <Bar dataKey="spent" fill="#FF6B6B" name="Spent" />
+            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+              <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+              <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
+              <Bar dataKey="budget" fill="#e2e8f0" radius={[4, 4, 0, 0]} name="Budget" />
+              <Bar dataKey="spent" fill="#6366f1" radius={[4, 4, 0, 0]} name="Spent" />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Budget Distribution Chart */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Budget Distribution</h3>
+        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><PieIcon size={20} className="text-indigo-500" /> Allocation</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
-              <Pie
-                data={chartData}
-                cx="50%"
-                cy="50%"
-                labelLine={true}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="budget"
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-              >
+              <Pie data={chartData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={5} dataKey="budget">
                 {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
                 ))}
               </Pie>
               <Tooltip />
@@ -222,52 +191,47 @@ const Budget = () => {
         </div>
       </div>
 
-      {/* Budget List */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Budget List</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Budget</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Spent</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remaining</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {budgets.map((budget) => {
-                const percentage = progressPercentage(budget);
-                const remaining = budget.amount - budget.spent;
-                return (
-                  <tr key={budget.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{budget.category}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹{budget.amount.toLocaleString()}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹{budget.spent.toLocaleString()}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹{remaining.toLocaleString()}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${percentage >= 90 ? 'bg-red-100 text-red-800' : percentage >= 75 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
-                        {percentage >= 90 ? 'Exceeded' : percentage >= 75 ? 'Warning' : 'On Track'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => handleDelete(budget.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {budgetStats.map((budget) => {
+          const styles = getStatusStyles(budget.percentage);
+          return (
+            <motion.div key={budget.id} layout className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm group relative">
+              <button 
+                onClick={() => deleteBudget(budget.id)}
+                className="absolute top-4 right-4 p-2 text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"
+              >
+                <Trash2 size={16} />
+              </button>
+              
+              <div className="flex justify-between items-start mb-4">
+                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-600"><Wallet size={20} /></div>
+                <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${styles.bg} ${styles.text}`}>
+                  {styles.label}
+                </span>
+              </div>
+
+              <h3 className="font-bold text-slate-900 text-lg">{budget.category}</h3>
+              <div className="flex items-center gap-1 text-slate-400 text-xs mb-4">
+                <Calendar size={12} /> {budget.startDate} to {budget.endDate}
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm font-bold">
+                  <span className="text-slate-900">₹{budget.spent.toLocaleString()}</span>
+                  <span className="text-slate-400">of ₹{budget.amount.toLocaleString()}</span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }} animate={{ width: `${budget.percentage}%` }}
+                    className={`h-full rounded-full ${styles.bar}`}
+                  />
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
-    </div>
+    </motion.div>
   );
 };
 
