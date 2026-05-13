@@ -39,8 +39,14 @@ export const TransactionProvider = ({ children }) => {
 
   // Add transaction to DB and update local state
   const addTransaction = async (transaction) => {
-    await window.electronAPI.db.addTransaction(transaction);
-    setTransactions(prev => [...prev, transaction]);
+    // 1. Send to DB and capture the response (the new real ID)
+    const newId = await window.electronAPI.db.addTransaction(transaction);
+    
+    // 2. Overwrite the temporary UUID with the real database ID
+    const savedTransaction = { ...transaction, id: newId };
+    
+    // 3. Update React
+    setTransactions(prev => [...prev, savedTransaction]);
   };
 
   // Update transaction in local state only (no DB handler yet)

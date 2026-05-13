@@ -1,26 +1,27 @@
 // src/App.jsx
 import React from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
-import Header from './components/Header';
+import MainLayout from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/TransactionsPage';
-import Budgets from './pages/Budget.jsx';
+import Budgets from './pages/Budget';
+import Reports from './pages/Reports';
 import { TransactionProvider } from './contexts/TransactionContext.jsx';
 
 function App() {
   return (
     <TransactionProvider>
       <Router>
-        <div className="min-h-screen bg-gray-50">
-          <Header />
-          <main className="container mx-auto px-4 py-8">
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/transactions" element={<Transactions />} />
-              <Route path="/budgets" element={<Budgets />} />
-            </Routes>
-          </main>
-        </div>
+        {/* MainLayout handles the Sidebar and the main scrolling area */}
+        <MainLayout>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/transactions" element={<Transactions />} />
+            <Route path="/budget" element={<Budgets />} />
+            <Route path="/reports" element={<Reports />} />
+            {/* Future: Add a Settings page here */}
+          </Routes>
+        </MainLayout>
       </Router>
     </TransactionProvider>
   );

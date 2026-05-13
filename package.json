@@ -43,7 +43,7 @@
     "wait-on": "^9.0.6"
   },
   "build": {
-    "electronDist": "node_modules/electron/dist", 
+    "electronDist": "node_modules/electron/dist",
     "appId": "com.expensetracker.app",
     "productName": "Expense Tracker",
     "directories": {
