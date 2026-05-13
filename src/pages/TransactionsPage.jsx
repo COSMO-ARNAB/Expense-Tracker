@@ -1,197 +1,167 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import { Search, Filter, Trash2, ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTransactions } from '../contexts/TransactionContext.jsx';
 
+// Keeping your original prebuilt categories here for the filter dropdown
 const PREBUILT_CATEGORIES = {
   Expense: ["Food", "Transport", "Bills", "Entertainment", "Shopping", "Health", "Education", "Others"],
   Income: ["Salary", "Bonus", "Allowance", "Freelance", "Investment", "Other"]
 };
 
 const TransactionsPage = () => {
-  const { 
-    transactions, 
-    addTransaction, 
-    deleteTransaction, 
-    customCategories, 
-    saveCustomCategory, 
-    isLoading 
-  } = useTransactions();
-
-  const [filteredTransactions, setFilteredTransactions] = useState([]);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const { transactions, deleteTransaction, customCategories, isLoading } = useTransactions();
   
-  // Filters State
-  const [filterCategory, setFilterCategory] = useState('all');
-  const [filterType, setFilterType] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('All');
+  const [filterType, setFilterType] = useState('All');
 
-  // New Transaction Form State
-  const [newTransaction, setNewTransaction] = useState({
-    title: '',
-    amount: '',
-    category: '',
-    date: new Date().toISOString().split('T')[0],
-    type: 'Expense' 
-  });
+  // Build the list of all possible categories for the filter dropdown based on your logic
+  const allCategories = useMemo(() => {
+    const defaultCats = [...PREBUILT_CATEGORIES.Expense, ...PREBUILT_CATEGORIES.Income];
+    const customCats = customCategories ? customCategories.map(c => c.name) : [];
+    return ['All', ...new Set([...defaultCats, ...customCats])];
+  }, [customCategories]);
 
-  const [customName, setCustomName] = useState("");
-  const [shouldSave, setShouldSave] = useState(false);
+  // Smart Filtering Logic
+  const filteredTransactions = useMemo(() => {
+    return transactions
+      .filter(t => {
+        const matchesSearch = t.title.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCategory = filterCategory === 'All' || t.category === filterCategory;
+        const matchesType = filterType === 'All' || t.type?.toLowerCase() === filterType.toLowerCase();
+        return matchesSearch && matchesCategory && matchesType;
+      })
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [transactions, searchTerm, filterCategory, filterType]);
 
-  // Get categories based on selected Type
-  const availableCategories = [
-    ...(PREBUILT_CATEGORIES[newTransaction.type] || []),
-    ...customCategories.filter(c => c.type === newTransaction.type).map(c => c.name),
-    "Custom"
-  ];
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    if (name === 'type') {
-      setNewTransaction(prev => ({ ...prev, [name]: value, category: '' }));
-    } else {
-      setNewTransaction(prev => ({ ...prev, [name]: value }));
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!newTransaction.title || !newTransaction.amount || !newTransaction.category) {
-      alert('Please fill in all required fields');
-      return;
-    }
-
-    let finalCategory = newTransaction.category;
-    if (newTransaction.category === "Custom") {
-      finalCategory = customName;
-      if (shouldSave) {
-        await saveCustomCategory({
-          id: Date.now().toString(),
-          name: customName,
-          type: newTransaction.type
-        });
-      }
-    }
-
-    await addTransaction({
-      ...newTransaction,
-      id: Date.now().toString(),
-      amount: parseFloat(newTransaction.amount),
-      category: finalCategory,
-    });
-    
-    setNewTransaction({ title: '', amount: '', category: '', date: new Date().toISOString().split('T')[0], type: 'Expense' });
-    setCustomName("");
-    setShouldSave(false);
-    setShowAddForm(false);
-  };
-
-  // Filter Logic
-  useEffect(() => {
-    let filtered = transactions || [];
-    if (filterCategory !== 'all') filtered = filtered.filter(t => t.category === filterCategory);
-    if (filterType !== 'all') filtered = filtered.filter(t => t.type.toLowerCase() === filterType.toLowerCase());
-    setFilteredTransactions(filtered);
-  }, [filterCategory, filterType, transactions]);
-
-  if (isLoading) return <div className="p-6 text-center text-gray-500">Loading Transactions...</div>;
+  if (isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center p-8">
+        <p className="text-slate-400 font-medium animate-pulse">Loading Transactions...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-800">Transactions</h1>
-        <button 
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
-        >
-          {showAddForm ? 'Cancel' : 'Add Transaction'}
-        </button>
+    <motion.div 
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="p-8 max-w-7xl mx-auto"
+    >
+      <div className="mb-8 flex justify-between items-end">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight mb-2">Transactions</h1>
+          <p className="text-slate-500 text-sm">View, search, and manage your financial history.</p>
+        </div>
       </div>
 
-      {/* Add Transaction Form */}
-      {showAddForm && (
-        <div className="bg-white p-6 rounded-lg shadow-lg border-t-4 border-blue-600">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">New Entry</h2>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-              <select name="type" value={newTransaction.type} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-md">
-                <option value="Expense">Expense</option>
-                <option value="Income">Income</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-              <select name="category" value={newTransaction.category} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-md" required>
-                <option value="">Select Category</option>
-                {availableCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-              </select>
-            </div>
-            {newTransaction.category === "Custom" && (
-              <div className="md:col-span-2 bg-gray-50 p-4 rounded-md border border-dashed border-gray-300">
-                <input type="text" value={customName} onChange={(e) => setCustomName(e.target.value)} className="w-full px-3 py-2 border rounded-md mb-2" placeholder="Category Name" required />
-                <label className="flex items-center text-sm text-gray-600">
-                  <input type="checkbox" checked={shouldSave} onChange={(e) => setShouldSave(e.target.checked)} className="mr-2" />
-                  Save for future use
-                </label>
-              </div>
-            )}
-            <input type="text" name="title" placeholder="Title" value={newTransaction.title} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-md" required />
-            <input type="number" name="amount" placeholder="Amount" value={newTransaction.amount} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-md" required />
-            <div className="md:col-span-2">
-              <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg transition">Save</button>
-            </div>
-          </form>
+      {/* SEARCH & FILTERS ROW */}
+      <div className="flex flex-col md:flex-row gap-4 mb-8">
+        <div className="relative flex-1">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <Search size={18} className="text-slate-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Search titles..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all"
+          />
         </div>
-      )}
 
-      {/* Filters Section */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Filters</h2>
         <div className="flex gap-4">
-          <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="px-3 py-2 border rounded-md">
-            <option value="all">All Types</option>
-            <option value="expense">Expenses</option>
-            <option value="income">Income</option>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Filter size={18} className="text-slate-400" />
+            </div>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="pl-11 pr-8 py-3 bg-white border border-slate-200 rounded-2xl appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm cursor-pointer text-slate-700 font-medium"
+            >
+              <option value="All">All Types</option>
+              <option value="Expense">Expenses</option>
+              <option value="Income">Income</option>
+            </select>
+          </div>
+
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="px-4 py-3 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm cursor-pointer text-slate-700 font-medium"
+          >
+            {allCategories.map(cat => <option key={cat} value={cat}>{cat === 'All' ? 'All Categories' : cat}</option>)}
           </select>
-          <button onClick={() => { setFilterCategory('all'); setFilterType('all'); }} className="text-sm text-blue-600">Reset</button>
         </div>
       </div>
 
-      {/* Transaction History Table */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">History</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredTransactions.map((t) => (
-                <tr key={t.id}>
-                  <td className="px-6 py-4 text-sm text-gray-500">{format(new Date(t.date), 'MMM dd, yyyy')}</td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{t.title}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{t.category}</td>
-                  <td className={`px-6 py-4 text-sm font-bold ${t.type.toLowerCase() === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                    {t.type.toLowerCase() === 'income' ? '+' : '-'}₹{Number(t.amount).toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4">
-                    <button onClick={() => deleteTransaction(t.id)} className="text-red-500 hover:text-red-700 text-sm">Delete</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filteredTransactions.length === 0 && (
-            <div className="text-center py-10 text-gray-400">No transactions found.</div>
-          )}
-        </div>
+      {/* TRANSACTIONS LIST */}
+      <div className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden">
+        {filteredTransactions.length > 0 ? (
+          <div className="divide-y divide-slate-50">
+            {filteredTransactions.map((t) => {
+              const isIncome = t.type?.toLowerCase() === 'income';
+              return (
+                <motion.div 
+                  key={t.id}
+                  layout 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="p-5 flex items-center justify-between hover:bg-slate-50 transition-colors group"
+                >
+                  <div className="flex items-center gap-5">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner
+                      ${isIncome ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-600'}`}
+                    >
+                      {isIncome ? <ArrowDownRight size={20} strokeWidth={3} /> : <ArrowUpRight size={20} strokeWidth={3} />}
+                    </div>
+                    
+                    <div>
+                      <p className="font-bold text-slate-900 text-base">{t.title}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-500">
+                          {t.category}
+                        </span>
+                        <span className="text-xs text-slate-400 font-medium">
+                          {format(new Date(t.date), 'MMM dd, yyyy')}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-6">
+                    <p className={`font-bold text-lg ${isIncome ? 'text-emerald-600' : 'text-slate-900'}`}>
+                      {isIncome ? '+' : '-'}₹{Number(t.amount).toLocaleString('en-IN')}
+                    </p>
+                    
+                    <button 
+                      onClick={() => deleteTransaction(t.id)}
+                      className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                      title="Delete transaction"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="p-16 text-center flex flex-col items-center justify-center">
+            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+              <Search size={24} className="text-slate-300" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-700 mb-1">No transactions found</h3>
+            <p className="text-slate-400 text-sm">Try adjusting your filters or add a new entry.</p>
+          </div>
+        )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 
