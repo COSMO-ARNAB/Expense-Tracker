@@ -1,5 +1,3 @@
-// src/pages/Dashboard.jsx
-
 import React, { useMemo } from 'react';
 import {
   BarChart,
@@ -24,23 +22,23 @@ const Dashboard = () => {
   // Loading state
   if (isLoading) {
     return (
-      <div className="p-6 text-lg font-semibold">
-        Loading dashboard...
+      <div className="p-6 text-lg font-semibold text-gray-500">
+        Syncing with Database...
       </div>
     );
   }
 
-  // Total Income
+  // 1. Total Income (Fixed with .toLowerCase())
   const totalIncome = useMemo(() => {
     return transactions
-      .filter(t => t.type === 'income')
+      .filter(t => t.type?.toLowerCase() === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
   }, [transactions]);
 
-  // Total Expenses
+  // 2. Total Expenses (Fixed with .toLowerCase())
   const totalExpenses = useMemo(() => {
     return transactions
-      .filter(t => t.type === 'expense')
+      .filter(t => t.type?.toLowerCase() === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
   }, [transactions]);
 
@@ -49,34 +47,28 @@ const Dashboard = () => {
     return totalIncome - totalExpenses;
   }, [totalIncome, totalExpenses]);
 
-  // Monthly Chart Data
+  // 3. Monthly Chart Data (Fixed logic inside loop)
   const chartData = useMemo(() => {
     const monthlyMap = {};
 
     transactions.forEach(t => {
       const date = new Date(t.date);
-
       const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
 
       if (!monthlyMap[monthKey]) {
         monthlyMap[monthKey] = {
           monthKey,
-          timestamp: new Date(
-            date.getFullYear(),
-            date.getMonth(),
-            1
-          ).getTime(),
-
+          timestamp: new Date(date.getFullYear(), date.getMonth(), 1).getTime(),
           name: format(date, 'MMM yyyy'),
-
           expense: 0,
           income: 0
         };
       }
 
-      if (t.type === 'expense') {
+      // Check type case-insensitively
+      if (t.type?.toLowerCase() === 'expense') {
         monthlyMap[monthKey].expense += t.amount;
-      } else {
+      } else if (t.type?.toLowerCase() === 'income') {
         monthlyMap[monthKey].income += t.amount;
       }
     });
@@ -85,35 +77,23 @@ const Dashboard = () => {
       .sort((a, b) => a.timestamp - b.timestamp)
       .slice(-6);
 
-    return sortedData.length > 0
-      ? sortedData
-      : [
-          {
-            name: 'No Data',
-            expense: 0,
-            income: 0
-          }
-        ];
+    return sortedData.length > 0 ? sortedData : [{ name: 'No Data', expense: 0, income: 0 }];
   }, [transactions]);
 
-  // Category Pie Chart Data
+  // 4. Category Pie Chart (Fixed with .toLowerCase())
   const categoryData = useMemo(() => {
     const categoryMap = {};
 
     transactions
-      .filter(t => t.type === 'expense')
+      .filter(t => t.type?.toLowerCase() === 'expense')
       .forEach(t => {
         if (!categoryMap[t.category]) {
           categoryMap[t.category] = 0;
         }
-
         categoryMap[t.category] += t.amount;
       });
 
-    return Object.entries(categoryMap).map(([name, value]) => ({
-      name,
-      value
-    }));
+    return Object.entries(categoryMap).map(([name, value]) => ({ name, value }));
   }, [transactions]);
 
   // Recent Transactions
@@ -123,224 +103,97 @@ const Dashboard = () => {
       .slice(0, 5);
   }, [transactions]);
 
-  // Pie Chart Colors
-  const COLORS = [
-    '#0088FE',
-    '#00C49F',
-    '#FFBB28',
-    '#FF8042',
-    '#8884D8',
-    '#FF6384',
-    '#36A2EB',
-    '#FFCE56'
-  ];
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#FF6384', '#36A2EB', '#FFCE56'];
 
   return (
     <div className="space-y-6">
-
-      {/* Header */}
-      <h1 className="text-3xl font-bold text-gray-800">
-        Dashboard
-      </h1>
+      <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
         <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold text-gray-600">
-            Total Income
-          </h3>
-
-          <p className="text-3xl font-bold text-green-600">
-            ₹{totalIncome.toLocaleString()}
-          </p>
+          <h3 className="text-lg font-semibold text-gray-600">Total Income</h3>
+          <p className="text-3xl font-bold text-green-600">₹{totalIncome.toLocaleString()}</p>
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold text-gray-600">
-            Total Expenses
-          </h3>
-
-          <p className="text-3xl font-bold text-red-600">
-            ₹{totalExpenses.toLocaleString()}
-          </p>
+          <h3 className="text-lg font-semibold text-gray-600">Total Expenses</h3>
+          <p className="text-3xl font-bold text-red-600">₹{totalExpenses.toLocaleString()}</p>
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold text-gray-600">
-            Balance
-          </h3>
-
-          <p className="text-3xl font-bold text-blue-600">
-            ₹{balance.toLocaleString()}
-          </p>
+          <h3 className="text-lg font-semibold text-gray-600">Balance</h3>
+          <p className="text-3xl font-bold text-blue-600">₹{balance.toLocaleString()}</p>
         </div>
-
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* Monthly Trend */}
         <div className="bg-white p-6 rounded-lg shadow">
-
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            Monthly Trend
-          </h3>
-
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Monthly Trend</h3>
           <ResponsiveContainer width="100%" height={300}>
-
             <BarChart data={chartData}>
-
               <CartesianGrid strokeDasharray="3 3" />
-
               <XAxis dataKey="name" />
-
               <YAxis />
-
               <Tooltip />
-
               <Legend />
-
-              <Bar
-                dataKey="expense"
-                fill="#ff6b6b"
-                name="Expenses"
-                radius={[6, 6, 0, 0]}
-              />
-
-              <Bar
-                dataKey="income"
-                fill="#4ecdc4"
-                name="Income"
-                radius={[6, 6, 0, 0]}
-              />
-
+              <Bar dataKey="expense" fill="#ff6b6b" name="Expenses" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="income" fill="#4ecdc4" name="Income" radius={[6, 6, 0, 0]} />
             </BarChart>
-
           </ResponsiveContainer>
-
         </div>
 
-        {/* Category Distribution */}
         <div className="bg-white p-6 rounded-lg shadow">
-
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            Spending by Category
-          </h3>
-
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Spending by Category</h3>
           <ResponsiveContainer width="100%" height={300}>
-
             <PieChart>
-
               <Pie
                 data={categoryData}
-                cx="50%"
-                cy="50%"
+                cx="50%" cy="50%"
                 outerRadius={90}
                 dataKey="value"
-                label={({ name, percent }) =>
-                  `${name}: ${(percent * 100).toFixed(0)}%`
-                }
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
               >
-
                 {categoryData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]}
-                  />
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
-
               </Pie>
-
               <Tooltip />
-
               <Legend />
-
             </PieChart>
-
           </ResponsiveContainer>
-
         </div>
-
       </div>
 
       {/* Recent Transactions */}
       <div className="bg-white p-6 rounded-lg shadow">
-
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">
-          Recent Transactions
-        </h3>
-
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Transactions</h3>
         <div className="overflow-x-auto">
-
           <table className="min-w-full divide-y divide-gray-200">
-
             <thead className="bg-gray-50">
-
               <tr>
-
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Title
-                </th>
-
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
-                </th>
-
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Amount
-                </th>
-
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
               </tr>
-
             </thead>
-
             <tbody className="bg-white divide-y divide-gray-200">
-
               {recentTransactions.map(transaction => (
-
                 <tr key={transaction.id}>
-
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {transaction.title}
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{transaction.title}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{transaction.category}</td>
+                  <td className={`px-6 py-4 text-sm font-medium ${transaction.type?.toLowerCase() === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                    {transaction.type?.toLowerCase() === 'income' ? '+' : '-'}₹{transaction.amount.toLocaleString()}
                   </td>
-
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {transaction.category}
-                  </td>
-
-                  <td
-                    className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
-                      transaction.type === 'income'
-                        ? 'text-green-600'
-                        : 'text-red-600'
-                    }`}
-                  >
-                    {transaction.type === 'income' ? '+' : '-'}
-                    ₹{transaction.amount.toLocaleString()}
-                  </td>
-
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {format(new Date(transaction.date), 'MMM dd, yyyy')}
-                  </td>
-
+                  <td className="px-6 py-4 text-sm text-gray-500">{format(new Date(transaction.date), 'MMM dd, yyyy')}</td>
                 </tr>
-
               ))}
-
             </tbody>
-
           </table>
-
         </div>
-
       </div>
-
     </div>
   );
 };
