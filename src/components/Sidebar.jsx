@@ -53,7 +53,7 @@ const Sidebar = ({ onAddClick }) => {
         <motion.button
           onClick={onAddClick} // <--- Attached the trigger here
           whileTap={{ scale: 0.95 }}
-          className="w-full py-3 liquid-accent text-white rounded-xl flex items-center justify-center gap-2 text-sm font-bold shadow-lg shadow-slate-200"
+          className="liquid-accent text-white rounded-xl w-full py-3 flex items-center justify-center gap-2 text-sm font-bold"
         >
           <PlusCircle size={18} />
           Add Transaction

@@ -27,8 +27,16 @@ const CustomBarTooltip = ({ active, payload, label }) => {
             <div key={index} className="flex items-center justify-between gap-6 text-sm">
               <span className="flex items-center gap-2 text-slate-300">
                 <span 
-                  className="w-2 h-2 rounded-full" 
-                  style={{ backgroundColor: entry.color }}
+                   className="w-2 h-2 rounded-full"
+                    style={{
+                      backgroundColor:
+                        entry.name === 'Income' ? '#34D399' : '#FB7185',
+                    
+                      boxShadow:
+                        entry.name === 'Income'
+                          ? '0 0 8px rgba(52, 211, 153, 0.45)'
+                          : '0 0 8px rgba(251, 113, 133, 0.45)'
+                    }}
                 ></span>
                 {entry.name}
               </span>
@@ -76,7 +84,7 @@ const Dashboard = () => {
   
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400">
         <p className="text-lg font-medium animate-pulse">Syncing your finances...</p>
       </div>
     );
@@ -157,7 +165,7 @@ const Dashboard = () => {
         {/* 1. TOPBAR */}
         <header className="py-8 flex justify-between items-center">
           <h1 className="text-xl font-semibold tracking-tight text-slate-800">Overview</h1>
-          <div className="text-sm font-medium text-slate-500 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
+          <div className="text-sm font-medium text-slate-400 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
             {format(new Date(), 'MMMM yyyy')}
           </div>
         </header>
@@ -165,10 +173,10 @@ const Dashboard = () => {
         <div className="space-y-8">
           
           {/* 2. HERO SECTION */}
-          <section className="bg-white rounded-3xl p-8 md:p-10 border border-slate-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+          <section className="surface-prominent p-8 md:p-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
             <div>
               <p className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-2">Total Balance</p>
-              <h2 className="text-5xl md:text-6xl font-extrabold text-slate-900 tracking-tight">
+              <h2 className="text-5xl md:text-6xl font-black tracking-tight text-slate-900 tracking-tight">
                 ₹{balance.toLocaleString('en-IN')}
               </h2>
             </div>
@@ -176,27 +184,21 @@ const Dashboard = () => {
             {/* Quick Insights Row (Inside Hero) */}
 <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
   <motion.div 
-    whileHover={{ y: -4, boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.05)" }}
-    transition={{ duration: 0.2 }}
-    className="bg-slate-50 px-6 py-5 rounded-2xl border border-slate-100 min-w-[160px] cursor-pointer"
+    className="surface-muted px-6 py-5 min-w-[160px] cursor-pointer"
   >
     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Income</p>
     <p className="text-2xl font-bold text-emerald-600">₹{totalIncome.toLocaleString('en-IN')}</p>
   </motion.div>
   
   <motion.div 
-    whileHover={{ y: -4, boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.05)" }}
-    transition={{ duration: 0.2 }}
-    className="bg-slate-50 px-6 py-5 rounded-2xl border border-slate-100 min-w-[160px] cursor-pointer"
+    className="surface-muted px-6 py-5 min-w-[160px] cursor-pointer"
   >
     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Expenses</p>
     <p className="text-2xl font-bold text-rose-500">₹{totalExpenses.toLocaleString('en-IN')}</p>
   </motion.div>
   
   <motion.div 
-    whileHover={{ y: -4, boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.05)" }}
-    transition={{ duration: 0.2 }}
-    className="bg-slate-50 px-6 py-5 rounded-2xl border border-slate-100 min-w-[160px] hidden lg:block cursor-pointer"
+    className="surface-muted px-6 py-5 min-w-[160px] hidden lg:block cursor-pointer"
   >
     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Top Expense</p>
     <p className="text-2xl font-bold text-slate-800">{topCategory.name}</p>
@@ -211,28 +213,49 @@ const Dashboard = () => {
             <div className="xl:col-span-8 space-y-8">
               
               {/* Main Spending Chart */}
-              <div className="surface-card p-8">
-                <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-6">Cash Flow Trend</h3>
+              <div className="surface-prominent p-8">
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-[0.18em] mb-6">Cash Flow Trend</h3>
                 <div className="h-[300px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                      <defs>
+                          <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#34D399" stopOpacity={0.95} />
+                            <stop offset="100%" stopColor="#059669" stopOpacity={0.78} />
+                          </linearGradient>
+
+                          <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#FB7185" stopOpacity={0.95} />
+                            <stop offset="100%" stopColor="#E11D48" stopOpacity={0.78} />
+                          </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3"
+                                      vertical={false}
+                                      stroke="rgba(148, 163, 184, 0.12)"/>
                       <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 12}} dy={10} />
                       <YAxis axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 12}} />
                       <Tooltip 
                         content={<CustomBarTooltip />} cursor={{fill: '#F8FAFC'}} />
-                      <Bar dataKey="income" fill="#10B981" name="Income" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                      <Bar dataKey="expense" fill="#F43F5E" name="Expenses" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                      <Bar dataKey="income"
+                          fill="url(#incomeGradient)"
+                          name="Income"
+                          radius={[10, 10, 0, 0]}
+                          maxBarSize={34} />
+                      <Bar  dataKey="expense"
+                          fill="url(#expenseGradient)"
+                          name="Expenses"
+                          radius={[10, 10, 0, 0]}
+                          maxBarSize={34}/>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
               </div>
 
               {/* Secondary Chart: Category Split */}
-              <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm flex flex-col md:flex-row items-center gap-8">
+              <div className="surface-prominent p-8 flex flex-col md:flex-row items-center gap-8">
                 <div className="w-full md:w-1/2">
-                  <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">Spending by Category</h3>
-                  <p className="text-slate-500 text-sm mb-6">Your highest expenses this period.</p>
+                  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-[0.18em] mb-2">Spending by Category</h3>
+                  <p className="text-slate-400 text-sm mb-6">Your highest expenses this period.</p>
                   <div className="space-y-3">
                     {categoryData.slice(0, 4).map((cat, index) => (
                       <div key={cat.name} className="flex justify-between items-center text-sm">
@@ -264,10 +287,10 @@ const Dashboard = () => {
             {/* RIGHT COLUMN: Activity Feed (4 cols) */}
             <div className="xl:col-span-4 space-y-6">
               <div className="flex justify-between items-end px-2">
-                <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Recent Activity</h3>
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-[0.18em]">Recent Activity</h3>
               </div>
               
-              <div className="bg-white rounded-3xl p-2 border border-slate-100 shadow-sm">
+              <div className="surface-prominent p-2">
                 {recentTransactions.length > 0 ? (
                   <div className="flex flex-col">
                     {recentTransactions.map((t, index) => {
@@ -275,7 +298,7 @@ const Dashboard = () => {
                       return (
                         <div 
                           key={t.id} 
-                          className={`flex items-center justify-between p-4 rounded-2xl transition-colors hover:bg-slate-50 ${index !== recentTransactions.length - 1 ? 'border-b border-slate-50' : ''}`}
+                          className={`flex items-center justify-between p-4 rounded-2xl transition-colors hover:bg-slate-50/80/ ${index !== recentTransactions.length - 1 ? 'border-b border-slate-50' : ''}`}
                         >
                           <div className="flex items-center gap-4">
                             {/* Smart Initial Avatar */}

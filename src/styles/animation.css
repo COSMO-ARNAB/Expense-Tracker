@@ -53,27 +53,85 @@
   }
 }
 
-.liquid-accent {
-  background: linear-gradient(
-    135deg,
-    rgb(var(--accent)),
-    rgb(79 70 229),
-    rgb(129 140 248)
-  );
+/* =========================================
+   PREMIUM LIQUID CTA
+   ========================================= */
 
-  background-size: 200% 200%;
+@keyframes liquid-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.liquid-accent {
+  position: relative;
+  overflow: hidden;
+
+  background:
+    linear-gradient(
+      135deg,
+      #6366f1,
+      #7c3aed,
+      #4f46e5,
+      #8b5cf6
+    );
+
+  background-size: 300% 300%;
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  box-shadow:
+    0 10px 24px rgba(99, 102, 241, 0.22),
+    0 4px 12px rgba(124, 58, 237, 0.18);
 
   transition:
-    transform 180ms var(--ease-premium),
-    box-shadow 180ms var(--ease-premium),
-    background-position 400ms ease;
+    transform 220ms var(--ease-premium),
+    box-shadow 220ms var(--ease-premium),
+    filter 220ms var(--ease-premium);
+}
+
+.liquid-accent::before {
+  content: '';
+
+  position: absolute;
+  inset: 0;
+
+  background:
+    linear-gradient(
+      120deg,
+      transparent 20%,
+      rgba(255, 255, 255, 0.16),
+      transparent 80%
+    );
+
+  transform: translateX(-120%);
+  transition: transform 700ms ease;
 }
 
 .liquid-accent:hover {
-  animation: liquid-flow 3s ease infinite;
+  animation: liquid-flow 4s ease infinite;
+
+  transform: translateY(-2px);
+
+  filter: brightness(1.03);
 
   box-shadow:
-    0 10px 30px rgba(99, 102, 241, 0.25);
+    0 16px 36px rgba(99, 102, 241, 0.32),
+    0 8px 18px rgba(124, 58, 237, 0.24);
+}
 
-  transform: translateY(-1px);
+.liquid-accent:hover::before {
+  transform: translateX(120%);
+}
+
+.liquid-accent:active {
+  transform: scale(0.985);
 }
