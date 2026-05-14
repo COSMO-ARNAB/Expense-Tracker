@@ -63,20 +63,18 @@ function createWindow() {
       enableRemoteModule: false,
       nodeIntegration: false,
     },
-    icon: path.join(__dirname, '../src/assets/Bar-nobg.png') // Updated icon path
+    icon: path.join(__dirname, '../src/assets/Bar-nobg.png')
   });
 
-  
-
-if (app.isPackaged) {
-  win.loadFile(path.join(__dirname, "../dist/index.html"));
-} else {
-  win.loadURL("http://localhost:3000");
-}
+  if (app.isPackaged) {
+    win.loadFile(path.join(__dirname, "../dist/index.html"));
+  } else {
+    win.loadURL("http://localhost:3000");
+  }
 }
 
 // ============================================
-// EXISTING STORAGE IPC HANDLERS (unchanged)
+// EXISTING STORAGE IPC HANDLERS
 // ============================================
 
 ipcMain.handle("storage:get", (event, key) => {
@@ -98,14 +96,11 @@ ipcMain.handle("storage:getAll", () => {
 });
 
 // ============================================
-// NEW DATABASE CRUD IPC HANDLERS
+// DATABASE CRUD IPC HANDLERS
 // ============================================
 
 // --- Transactions Handlers ---
 
-/**
- * Get all transactions from database, ordered by date (newest first)
- */
 ipcMain.handle("db:getTransactions", () => {
   try {
     const stmt = db.prepare("SELECT * FROM transactions ORDER BY date DESC");
@@ -116,10 +111,6 @@ ipcMain.handle("db:getTransactions", () => {
   }
 });
 
-/**
- * Add a new transaction to the database
- * @param {Object} transaction - { id, title, amount, category, type, date }
- */
 ipcMain.handle("db:addTransaction", (event, transaction) => {
   try {
     const stmt = db.prepare(`
@@ -127,7 +118,7 @@ ipcMain.handle("db:addTransaction", (event, transaction) => {
       VALUES (?, ?, ?, ?, ?, ?)
     `);
     
-    const result = stmt.run(
+    stmt.run(
       transaction.id,
       transaction.title,
       parseFloat(transaction.amount),
@@ -143,10 +134,6 @@ ipcMain.handle("db:addTransaction", (event, transaction) => {
   }
 });
 
-/**
- * Delete a transaction by ID
- * @param {string} id - Transaction ID
- */
 ipcMain.handle("db:deleteTransaction", (event, id) => {
   try {
     const stmt = db.prepare("DELETE FROM transactions WHERE id = ?");
@@ -164,9 +151,6 @@ ipcMain.handle("db:deleteTransaction", (event, id) => {
 
 // --- Budgets Handlers ---
 
-/**
- * Get all budgets from database
- */
 ipcMain.handle("db:getBudgets", () => {
   try {
     const stmt = db.prepare("SELECT * FROM budgets");
@@ -177,21 +161,19 @@ ipcMain.handle("db:getBudgets", () => {
   }
 });
 
-/**
- * Add a new budget to the database
- * @param {Object} budget - { id, category, amount }
- */
 ipcMain.handle("db:addBudget", (event, budget) => {
   try {
     const stmt = db.prepare(`
-      INSERT INTO budgets (id, category, amount)
-      VALUES (?, ?, ?)
+      INSERT INTO budgets (id, category, amount, startDate, endDate)
+      VALUES (?, ?, ?, ?, ?)
     `);
     
-    const result = stmt.run(
+    stmt.run(
       budget.id,
       budget.category,
-      parseFloat(budget.amount)
+      parseFloat(budget.amount),
+      budget.startDate,
+      budget.endDate
     );
     
     return { success: true, id: budget.id };
@@ -201,10 +183,29 @@ ipcMain.handle("db:addBudget", (event, budget) => {
   }
 });
 
-/**
- * Delete a budget by ID
- * @param {string} id - Budget ID
- */
+// NEW: Update Budget Handler
+ipcMain.handle("db:updateBudget", (event, id, budget) => {
+  try {
+    const stmt = db.prepare(`
+      UPDATE budgets 
+      SET amount = ?, startDate = ?, endDate = ? 
+      WHERE id = ?
+    `);
+    
+    const result = stmt.run(
+      parseFloat(budget.amount),
+      budget.startDate,
+      budget.endDate,
+      id
+    );
+    
+    return { success: true, updated: result.changes > 0 };
+  } catch (error) {
+    console.error("Error updating budget:", error);
+    throw new Error(`Failed to update budget: ${error.message}`);
+  }
+});
+
 ipcMain.handle("db:deleteBudget", (event, id) => {
   try {
     const stmt = db.prepare("DELETE FROM budgets WHERE id = ?");
@@ -222,22 +223,16 @@ ipcMain.handle("db:deleteBudget", (event, id) => {
 
 // --- Custom Category Handlers ---
 
-/**
- * Get all saved custom categories
- */
 ipcMain.handle("db:getCustomCategories", () => {
   try {
     const stmt = db.prepare("SELECT * FROM custom_categories");
     return stmt.all();
   } catch (error) {
     console.error("Error fetching custom categories:", error);
-    return []; // Return empty array if table doesn't exist yet
+    return []; 
   }
 });
 
-/**
- * Save a new custom category
- */
 ipcMain.handle("db:addCustomCategory", (event, category) => {
   try {
     const stmt = db.prepare(`

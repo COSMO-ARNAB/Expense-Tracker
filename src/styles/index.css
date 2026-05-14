@@ -2,17 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 1. GLOBAL DEFAULTS */
+:root {
+  --indigo-glow: rgba(99, 102, 241, 0.5);
+  --slate-bg: #f8fafc;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f8fafc;
+  background-color: var(--slate-bg);
+  color: #1e293b;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+/* 2. LIQUID FLOW ANIMATION */
+@keyframes liquid-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.liquid-gradient {
+  /* Using your UI's Indigo, Purple, and Pink for a vibrant mix */
+  background: linear-gradient(-45deg, #6366f1, #8b5cf6, #ec4899, #6366f1);
+  background-size: 400% 400%;
+  border: none;
+}
+
+/* Only triggers flow on hover to keep the UI clean */
+.hover-animate-liquid:hover {
+  animation: liquid-flow 3s ease infinite;
+}
+
+/* 3. SCROLLBAR STYLING (For that premium feel) */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
 }

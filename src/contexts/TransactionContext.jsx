@@ -14,9 +14,8 @@ export const TransactionProvider = ({ children }) => {
   const [transactions, setTransactions] = useState([]);
   const [budgets, setBudgets] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [customCategories, setCustomCategories] = useState([]); //custom categories state
+  const [customCategories, setCustomCategories] = useState([]);
 
-  // Load data from SQLite on mount
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -37,51 +36,66 @@ export const TransactionProvider = ({ children }) => {
     loadData();
   }, []);
 
-  // Add transaction to DB and update local state
   const addTransaction = async (transaction) => {
-    // 1. Send to DB and capture the response (the new real ID)
-    const newId = await window.electronAPI.db.addTransaction(transaction);
-    
-    // 2. Overwrite the temporary UUID with the real database ID
-    const savedTransaction = { ...transaction, id: newId };
-    
-    // 3. Update React
-    setTransactions(prev => [...prev, savedTransaction]);
+    try {
+      const newId = await window.electronAPI.db.addTransaction(transaction);
+      const savedTransaction = { ...transaction, id: newId };
+      setTransactions(prev => [...prev, savedTransaction]);
+      return newId;
+    } catch (error) {
+      console.error("Failed to add transaction:", error);
+    }
   };
 
-  // Update transaction in local state only (no DB handler yet)
-  const updateTransaction = (id, updatedTransaction) => {
-    setTransactions(prev => 
-      prev.map(t => t.id === id ? updatedTransaction : t)
-    );
+  const updateTransaction = async (id, updatedTransaction) => {
+    try {
+      // PRECAUTION: Always ensure the DB is updated before or alongside the state
+      await window.electronAPI.db.updateTransaction(id, updatedTransaction);
+      setTransactions(prev => prev.map(t => t.id === id ? updatedTransaction : t));
+    } catch (error) {
+      console.error("Failed to update transaction:", error);
+    }
   };
 
-  // Delete transaction from DB and update local state
   const deleteTransaction = async (id) => {
-    await window.electronAPI.db.deleteTransaction(id);
-    setTransactions(prev => prev.filter(t => t.id !== id));
+    try {
+      await window.electronAPI.db.deleteTransaction(id);
+      setTransactions(prev => prev.filter(t => t.id !== id));
+    } catch (error) {
+      console.error("Failed to delete transaction:", error);
+    }
   };
 
-  // Add budget to DB and update local state
   const addBudget = async (budget) => {
-    await window.electronAPI.db.addBudget(budget);
-    setBudgets(prev => [...prev, budget]);
+    try {
+      const newId = await window.electronAPI.db.addBudget(budget);
+      const savedBudget = { ...budget, id: newId };
+      setBudgets(prev => [...prev, savedBudget]);
+      return newId;
+    } catch (error) {
+      console.error("Failed to add budget:", error);
+    }
   };
 
-  // Update budget in local state only (no DB handler yet)
-  const updateBudget = (id, updatedBudget) => {
-    setBudgets(prev => 
-      prev.map(b => b.id === id ? updatedBudget : b)
-    );
+  const updateBudget = async (id, updatedBudget) => {
+    try {
+      // PRECAUTION: Fixed the "missing DB handler" issue
+      await window.electronAPI.db.updateBudget(id, updatedBudget);
+      setBudgets(prev => prev.map(b => b.id === id ? updatedBudget : b));
+    } catch (error) {
+      console.error("Failed to update budget in DB:", error);
+    }
   };
 
-  // Delete budget from DB and update local state
   const deleteBudget = async (id) => {
-    await window.electronAPI.db.deleteBudget(id);
-    setBudgets(prev => prev.filter(b => b.id !== id));
+    try {
+      await window.electronAPI.db.deleteBudget(id);
+      setBudgets(prev => prev.filter(b => b.id !== id));
+    } catch (error) {
+      console.error("Failed to delete budget:", error);
+    }
   };
 
-  // Save custom category to DB and state
   const saveCustomCategory = async (category) => {
     try {
       await window.electronAPI.db.addCustomCategory(category);
@@ -91,7 +105,6 @@ export const TransactionProvider = ({ children }) => {
     }
   };
 
-  // Delete custom category from DB and state
   const removeCustomCategory = async (id) => {
     try {
       await window.electronAPI.db.deleteCustomCategory(id);
@@ -112,8 +125,8 @@ export const TransactionProvider = ({ children }) => {
       updateBudget,
       deleteBudget,
       customCategories,
-      saveCustomCategory, // Expose saveCustomCategory to context
-      removeCustomCategory, // Expose removeCustomCategory to context
+      saveCustomCategory,
+      removeCustomCategory,
       isLoading
     }}>
       {children}
