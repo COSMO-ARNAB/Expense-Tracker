@@ -1,0 +1,75 @@
+/* =========================================
+   PREMIUM SURFACES
+   ========================================= */
+
+.surface-card {
+  background: rgb(var(--surface));
+
+  border: 1px solid rgba(var(--border), 0.7);
+
+  border-radius: 28px;
+
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.03),
+    0 8px 24px rgba(15, 23, 42, 0.04);
+
+  transition:
+    transform 180ms var(--ease-premium),
+    box-shadow 180ms var(--ease-premium),
+    border-color 180ms var(--ease-premium),
+    background-color 180ms var(--ease-premium);
+}
+
+.surface-card:hover {
+  box-shadow:
+    0 4px 12px rgba(15, 23, 42, 0.04),
+    0 16px 40px rgba(15, 23, 42, 0.06);
+
+  border-color: rgba(var(--accent), 0.08);
+}
+
+
+/* Interactive elevated surface */
+.surface-interactive:hover {
+  transform: translateY(-2px);
+}
+
+/* =========================================
+   TEXT SYSTEM
+   ========================================= */
+
+.text-primary {
+  color: rgb(var(--text-primary));
+}
+
+.text-secondary {
+  color: rgb(var(--text-secondary));
+}
+
+.text-muted {
+  color: rgb(var(--text-muted));
+}
+
+/* =========================================
+   SURFACE SYSTEM
+   ========================================= */
+
+.bg-surface {
+  background: rgb(var(--surface));
+}
+
+.border-default {
+  border-color: rgb(var(--border));
+}
+
+/* =========================================
+   BRAND SYSTEM
+   ========================================= */
+
+.text-accent {
+  color: rgb(var(--accent));
+}
+
+.bg-accent-soft {
+  background: rgb(var(--accent-soft));
+}

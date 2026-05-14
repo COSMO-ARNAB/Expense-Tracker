@@ -6,7 +6,7 @@ const MainLayout = ({ children }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
-    <div className="flex bg-slate-50 min-h-screen">
+    <div className="flex bg-slate-50 h-screen overflow-hidden">
       {/* Pass the toggle function to the Sidebar */}
       <Sidebar onAddClick={() => setIsModalOpen(true)} />
       

@@ -1,0 +1,53 @@
+/* =========================================
+   PREMIUM APP SCROLLBAR
+   Scoped for desktop SaaS feel
+   ========================================= */
+
+/* Hide default body scrollbar */
+body {
+  overflow: hidden;
+}
+
+/* Main app scroll area */
+main {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+/* Webkit Scrollbar */
+main::-webkit-scrollbar {
+  width: 10px;
+}
+
+/* Track */
+main::-webkit-scrollbar-track {
+  background: transparent;
+  margin-block: 8px;
+}
+
+/* Thumb */
+main::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease;
+}
+
+/* Reveal on hover */
+main:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.35);
+}
+
+/* Stronger interaction */
+main::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(99, 102, 241, 0.45);
+}
+
+/* Smooth feel */
+main {
+  scroll-behavior: smooth;
+}

@@ -15,7 +15,7 @@ const NavItem = ({ icon: Icon, label, to, active }) => (
     <motion.div
       whileHover={{ x: 4, backgroundColor: 'rgba(241, 245, 249, 1)' }}
       className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-colors ${
-        active ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:text-slate-900'
+        active ? 'bg-indigo-50 text-indigo-600' : 'text-secondary hover:text-primary'
       }`}
     >
       <Icon size={20} strokeWidth={active ? 2.5 : 2} />
@@ -29,14 +29,14 @@ const Sidebar = ({ onAddClick }) => {
   const location = useLocation();
 
   return (
-    <aside className="w-64 h-screen border-r border-slate-100 bg-white flex flex-col p-4 fixed left-0 top-0 z-50">
+    <aside className="w-64 h-screen border-r border-default bg-surface flex flex-col p-4 fixed left-0 top-0 z-50">
       {/* BRAND ZONE */}
       <div className="px-4 py-6 mb-4">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">
             E
           </div>
-          <span className="text-lg font-bold tracking-tight text-slate-900">ExpenseOS</span>
+          <span className="text-lg font-bold tracking-tight text-primary">ExpenseOS</span>
         </div>
       </div>
 
@@ -53,7 +53,7 @@ const Sidebar = ({ onAddClick }) => {
         <motion.button
           onClick={onAddClick} // <--- Attached the trigger here
           whileTap={{ scale: 0.95 }}
-          className="w-full py-3 bg-slate-900 text-white rounded-xl flex items-center justify-center gap-2 text-sm font-bold shadow-lg shadow-slate-200"
+          className="w-full py-3 liquid-accent text-white rounded-xl flex items-center justify-center gap-2 text-sm font-bold shadow-lg shadow-slate-200"
         >
           <PlusCircle size={18} />
           Add Transaction

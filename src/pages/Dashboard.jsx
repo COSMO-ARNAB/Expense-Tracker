@@ -211,7 +211,7 @@ const Dashboard = () => {
             <div className="xl:col-span-8 space-y-8">
               
               {/* Main Spending Chart */}
-              <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+              <div className="surface-card p-8">
                 <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-6">Cash Flow Trend</h3>
                 <div className="h-[300px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
