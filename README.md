@@ -1,16 +1,67 @@
-# React + Vite
+# Expense Tracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern desktop expense tracker built with Electron, React, Tailwind CSS, and SQLite.
 
-Currently, two official plugins are available:
+Expense Tracker focuses on premium analytics, smooth interactions, and a clean fintech-inspired user experience while keeping personal finance tracking simple and fast.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## ✨ Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 📊 Advanced Reports & Analytics
+- Premium reports dashboard
+- Income vs Expenses trend analysis
+- Interactive donut chart analytics
+- Financial health insights
+- Animated KPI cards
+- Glassmorphism tooltips
+- Smooth motion-based interactions
 
-## Expanding the ESLint configuration
+### 💸 Transaction Management
+- Add income and expenses
+- Categorize transactions
+- Transaction history tracking
+- Real-time financial updates
+- Smart filtering by timeframe
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 🖥️ Desktop Experience
+- Electron-powered desktop app
+- Native Windows executable build
+- Local SQLite data persistence
+- Offline-first workflow
+
+### 🎨 UI / UX
+- Fintech-inspired interface
+- Responsive dashboard layout
+- Motion-enhanced analytics
+- Premium hover effects
+- Soft shadow depth system
+- Modern typography hierarchy
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+- React
+- Vite
+- Tailwind CSS
+- Framer Motion
+- Recharts
+
+### Desktop
+- Electron
+- Electron Builder
+
+### Database
+- SQLite
+
+---
+
+## 🚀 Installation
+
+### Clone Repository
+
+```bash
+git clone https://github.com/COSMO-ARNAB/Expense-Tracker.git
+cd Expense-Tracker
