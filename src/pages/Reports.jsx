@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
 import { useTransactions } from '../contexts/TransactionContext.jsx';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   startOfWeek,
   endOfWeek,
@@ -243,7 +243,11 @@ const Reports = () => {
                 </p>
 
                 <p className="text-2xl font-black text-rose-600 tracking-tight">
-                  ₹{stats.expenses.toLocaleString('en-IN')}
+                  {Array.from(`₹${stats.expenses.toLocaleString('en-IN')}`).map((char, index) => (
+  <tspan key={index}>
+    {char}
+  </tspan>
+))}
                 </p>
               </div>
             </div>
@@ -356,22 +360,110 @@ const Reports = () => {
                   outerRadius={108}
                   paddingAngle={4}
                   dataKey="value"
+                  isAnimationActive={true}
+                  animationBegin={0}
                   animationDuration={1800}
+                  animationEasing="ease-out"
+                  activeOuterRadius={116}
                   label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                  labelLine={false}
                 >
-
                   {stats.pieData.map((_, index) => (
                     <Cell
-                      key={index}
+                      key={`cell-${index}`}
                       fill={COLORS[index % COLORS.length]}
                       stroke="rgba(255,255,255,0.75)"
                       strokeWidth={3}
+                      style={{
+                        filter: 'drop-shadow(0 6px 14px rgba(99,102,241,0.10))'
+                      }}
                     />
                   ))}
 
                 </Pie>
+                 <g>
+                    {/* Accent line */}
+                    <line
+                      x1="38%"
+                      y1="50%"
+                      x2="62%"
+                      y2="50%"
+                      stroke="rgba(15,23,42,0.08)"
+                      strokeWidth="1.5"
+                    />
 
-                <Tooltip />
+                    {/* Animated Amount */}
+                    <text
+                      x="50%"
+                      y="50%"
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      className="fill-slate-900 text-[28px] font-black tracking-tight"
+                    >
+                      {Array.from(`₹${stats.expenses.toLocaleString('en-IN')}`).map((char, index) => (
+                        <motion.tspan
+                          key={index}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{
+                            delay: index * 0.045,
+                            duration: 0.28
+                          }}
+                        >
+                          {char}
+                        </motion.tspan>
+                      ))}
+                    </text>
+                    
+                  </g>
+
+                <Tooltip
+  content={({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-slate-950/95 backdrop-blur-xl border border-slate-800 rounded-2xl px-4 py-3 shadow-2xl min-w-[170px]">
+
+          <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500 font-black mb-3">
+            {label}
+          </p>
+
+          <div className="space-y-2">
+
+            {payload.map((entry, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between gap-6"
+              >
+
+                <div className="flex items-center gap-2">
+
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{
+                      background: entry.color,
+                      boxShadow: `0 0 10px ${entry.color}`
+                    }}
+                  />
+
+                  <span className="text-sm text-slate-300 font-medium capitalize">
+                    {entry.name}
+                  </span>
+                </div>
+
+                <span className="text-sm font-black text-white">
+                  ₹{Number(entry.value).toLocaleString('en-IN')}
+                </span>
+
+              </div>
+            ))}
+
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  }} />
 
               </PieChart>
             </ResponsiveContainer>
