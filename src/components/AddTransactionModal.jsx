@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Trash2 } from 'lucide-react'; // Added Trash2 icon
-import { useTransactions } from '../contexts/TransactionContext.jsx'; 
+import { useTransactions } from '../contexts/TransactionContext.jsx';
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const PREBUILT_CATEGORIES = {
   Expense: ["Food", "Transport", "Bills", "Entertainment", "Shopping", "Health", "Education", "Others"],
@@ -16,7 +18,8 @@ const AddTransactionModal = ({ isOpen, onClose }) => {
     title: '',
     amount: '',
     type: 'Expense',
-    category: 'Food' 
+    category: 'Food',
+date: new Date().toISOString().split('T')[0] 
   });
 
   const [customName, setCustomName] = useState("");
@@ -68,12 +71,13 @@ const AddTransactionModal = ({ isOpen, onClose }) => {
         amount: parseFloat(formData.amount),
         type: formData.type,
         category: finalCategory,
-        date: new Date().toISOString(),
+        date: formData.date,
       };
 
       await addTransaction(newTransaction);
       
-      setFormData({ title: '', amount: '', type: 'Expense', category: 'Food' });
+      setFormData({ title: '', amount: '', type: 'Expense', category: 'Food',
+date: new Date().toISOString().split('T')[0] });
       setCustomName("");
       setShouldSave(false);
       onClose();
@@ -139,13 +143,37 @@ const AddTransactionModal = ({ isOpen, onClose }) => {
               </div>
 
               <div>
-                <div className="flex justify-between items-end mb-2">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Category</label>
+                <div>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">
+                  Date
+                </label>
+                    
+                <DatePicker
+                  selected={new Date(formData.date)}
+                  onChange={(date) => {
+                    if (!date) return;
                   
-                  {/* NEW UI: Delete button only shows if it's a custom category */}
+                    setFormData(prev => ({
+                      ...prev,
+                      date: date.toISOString().split('T')[0]
+                    }));
+                  }}
+                  dateFormat="dd MMM yyyy"
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-slate-700"
+                  calendarClassName="rounded-2xl border border-slate-200 shadow-2xl"
+                  popperClassName="z-[9999]"
+                />
+              </div>
+                    
+              <div>
+                <div className="flex justify-between items-end mb-2">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                    Category
+                  </label>
+                    
                   {activeCustomCategory && (
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={handleDeleteCustomCategory}
                       className="text-[10px] font-bold text-rose-500 hover:text-rose-700 flex items-center gap-1 uppercase tracking-wider"
                     >
@@ -153,10 +181,20 @@ const AddTransactionModal = ({ isOpen, onClose }) => {
                     </button>
                   )}
                 </div>
-
-                <select name="category" value={formData.category} onChange={handleChange} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer">
-                  {availableCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                
+                <select
+                  name="category"
+                  value={formData.category}
+                  onChange={handleChange}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer"
+                >
+                  {availableCategories.map(cat => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
                 </select>
+              </div>
               </div>
 
               {formData.category === "Custom" && (

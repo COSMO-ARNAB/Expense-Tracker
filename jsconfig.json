@@ -1,0 +1,11 @@
+// jsconfig.json - Configuration file for JavaScript projects, enabling path aliases and JSX support for React development. 
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "jsx": "react-jsx"
+  },
+  "include": ["src"]
+}

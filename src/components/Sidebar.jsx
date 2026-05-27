@@ -13,8 +13,8 @@ import {
 const NavItem = ({ icon: Icon, label, to, active }) => (
   <Link to={to}>
     <motion.div
-      whileHover={{ x: 4, backgroundColor: 'rgba(241, 245, 249, 1)' }}
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-colors ${
+      whileHover={{ x: 8, backgroundColor: 'rgba(241, 235, 300, 2)' }}
+      className={`flex items-center gap-6 px-5 py-2.5 rounded-xl cursor-pointer transition-colors ${
         active ? 'bg-indigo-50 text-indigo-600' : 'text-secondary hover:text-primary'
       }`}
     >
@@ -52,8 +52,8 @@ const Sidebar = ({ onAddClick }) => {
       <div className="mb-6 px-2">
         <motion.button
           onClick={onAddClick} // <--- Attached the trigger here
-          whileTap={{ scale: 0.95 }}
-          className="liquid-accent text-white rounded-xl w-full py-3 flex items-center justify-center gap-2 text-sm font-bold"
+          whileTap={{ scale: 1.05 }}
+          className="liquid-accent text-white rounded-xl w-full py-3 flex items-center justify-center gap-3 text-sm font-bold"
         >
           <PlusCircle size={18} />
           Add Transaction
