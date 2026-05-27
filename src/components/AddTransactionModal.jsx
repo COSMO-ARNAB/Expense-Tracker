@@ -80,7 +80,7 @@ date: new Date().toISOString().split('T')[0]
 date: new Date().toISOString().split('T')[0] });
       setCustomName("");
       setShouldSave(false);
-      onClose();
+      // onClose(); // keep modal open for consecutive entries
     } catch (error) {
       console.error("Failed to add transaction", error);
     } finally {
