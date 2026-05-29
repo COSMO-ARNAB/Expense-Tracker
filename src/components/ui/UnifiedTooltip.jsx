@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSettings } from '../../contexts/SettingsContext.jsx';
 
 /**
  * Unified tooltip component for Recharts.
@@ -64,6 +65,8 @@ const resolveColor = (entry) => {
 };
 
 const UnifiedTooltip = ({ active, payload, label }) => {
+  const { formatCurrency } = useSettings();
+  
   if (!active || !payload || !payload.length) return null;
 
   return (
@@ -101,7 +104,7 @@ const UnifiedTooltip = ({ active, payload, label }) => {
                 {entry.name}
               </span>
               <span className="font-bold text-white">
-                ₹{val.toLocaleString('en-IN')}
+                {formatCurrency(val)}
               </span>
             </div>
           );

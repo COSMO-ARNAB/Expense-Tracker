@@ -15,6 +15,7 @@ import {
 import { TrendingUp, TrendingDown, PieChart as PieIcon, Activity, Plus } from 'lucide-react';
 // Shared unified tooltip
 import UnifiedTooltip from '../components/ui/UnifiedTooltip.jsx';
+import { useSettings } from '../contexts/SettingsContext.jsx';
 
 // PREMIUM BUTTON IMPORT
 import { Button } from "@/components/ui/Button.jsx";
@@ -23,6 +24,7 @@ const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 
 const Reports = () => {
   const { transactions, isLoading } = useTransactions();
+  const { formatCurrency, formatDate } = useSettings();
   const [timeframe, setTimeframe] = useState('Monthly'); // Weekly, Monthly, Yearly
 
   // 1. STRICT DATE FILTERING (Fixes the 2023 "Ghost Data" bug)
@@ -221,7 +223,7 @@ const getHeatIntensity = (amount) => {
           </p>
 
           <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">
-            ₹{stats.savings.toLocaleString('en-IN')}
+            {stats.savings < 0 ? `-${formatCurrency(Math.abs(stats.savings))}` : formatCurrency(stats.savings)}
           </h2>
 
           <p className="text-slate-500 mt-3 text-sm max-w-md leading-relaxed">
@@ -251,7 +253,7 @@ const getHeatIntensity = (amount) => {
           </p>
 
           <p className="text-2xl font-black text-emerald-600 tracking-tight">
-            ₹{stats.income.toLocaleString('en-IN')}
+            {formatCurrency(stats.income)}
           </p>
         </div>
 
@@ -261,7 +263,7 @@ const getHeatIntensity = (amount) => {
           </p>
 
           <p className="text-2xl font-black text-rose-600 tracking-tight">
-            ₹{stats.expenses.toLocaleString('en-IN')}
+            {formatCurrency(stats.expenses)}
           </p>
         </div>
       </div>
@@ -396,7 +398,7 @@ const getHeatIntensity = (amount) => {
                       dominantBaseline="middle"
                       className="fill-slate-900 text-2xl font-black"
                     >
-                      ₹{stats.expenses.toLocaleString('en-IN')}
+                      {formatCurrency(stats.expenses)}
                     </text>
                   <Tooltip content={<UnifiedTooltip />} cursor={{fill: '#F8FAFC'}} />
                 </PieChart>
@@ -544,7 +546,7 @@ const getHeatIntensity = (amount) => {
             <div 
               key={i} 
               className={`w-6 h-6 rounded-md shrink-0 transition-all duration-300 hover:scale-110 cursor-help ${getHeatIntensity(day.total)}`} 
-              title={`${day.formatted}: Spent ₹${day.total.toLocaleString('en-IN')}`} 
+              title={`${day.formatted}: Spent ${formatCurrency(day.total)}`} 
             />
           ))}
         </div>
@@ -561,11 +563,11 @@ const getHeatIntensity = (amount) => {
         </div>
                 
         <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 font-semibold">
-          Savings ₹{stats.savings.toLocaleString('en-IN')}
+          Savings {stats.savings < 0 ? `-${formatCurrency(Math.abs(stats.savings))}` : formatCurrency(stats.savings)}
         </div>
                 
         <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-50 text-rose-700 font-semibold">
-          Expenses ₹{stats.expenses.toLocaleString('en-IN')}
+          Expenses {formatCurrency(stats.expenses)}
         </div>
       </div>
 
@@ -622,7 +624,7 @@ const getHeatIntensity = (amount) => {
         }`}
       >
         {t.type.toLowerCase() === 'income' ? '+' : '-'}
-        ₹{Number(t.amount).toLocaleString('en-IN')}
+        {formatCurrency(t.amount)}
       </div>
 
     </motion.div>
@@ -635,45 +637,48 @@ const getHeatIntensity = (amount) => {
 };
 
 // Sub-components
-const StatCard = ({ title, value, color, icon, isSavings }) => (
-  <div className="surface-card p-6 relative overflow-hidden group">
-    
-    {/* Ambient glow */}
-    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-      <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl" />
-    </div>
-
-    <div className="relative z-10">
+const StatCard = ({ title, value, color, icon, isSavings }) => {
+  const { formatCurrency } = useSettings();
+  return (
+    <div className="surface-card p-6 relative overflow-hidden group">
       
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        
-        <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-          {title}
-        </span>
+      {/* Ambient glow */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+        <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl" />
+      </div>
 
-        <div className={`${color} opacity-90`}>
-          {icon}
+      <div className="relative z-10">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between mb-5">
+          
+          <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+            {title}
+          </span>
+
+          <div className={`${color} opacity-90`}>
+            {icon}
+          </div>
+        </div>
+
+        {/* Value */}
+        <div className="flex items-end justify-between">
+          
+          <p
+            className={`text-3xl md:text-[2rem] leading-none font-black tracking-tight ${
+              isSavings && value < 0 ? 'text-rose-600' : color
+            }`}
+          >
+            {value < 0 ? `-${formatCurrency(Math.abs(value))}` : formatCurrency(value)}
+          </p>
+
+          {/* Tiny trend accent */}
+          <div className="w-12 h-[2px] rounded-full bg-gradient-to-r from-indigo-500/40 to-transparent" />
         </div>
       </div>
-
-      {/* Value */}
-      <div className="flex items-end justify-between">
-        
-        <p
-          className={`text-3xl md:text-[2rem] leading-none font-black tracking-tight ${
-            isSavings && value < 0 ? 'text-rose-600' : color
-          }`}
-        >
-          ₹{value.toLocaleString('en-IN')}
-        </p>
-
-        {/* Tiny trend accent */}
-        <div className="w-12 h-[2px] rounded-full bg-gradient-to-r from-indigo-500/40 to-transparent" />
-      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const EmptyDataState = () => (
   <div className="h-full flex flex-col items-center justify-center text-slate-400">

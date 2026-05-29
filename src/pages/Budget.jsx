@@ -10,6 +10,7 @@ import {
 } from 'recharts';
 import UnifiedTooltip from '../components/ui/UnifiedTooltip.jsx';
 import { useTransactions } from '../contexts/TransactionContext.jsx';
+import { useSettings } from '../contexts/SettingsContext.jsx';
 
 const PREBUILT_CATEGORIES = ["Food", "Transport", "Shopping", "Bills", "Entertainment", "Health", "Education", "Others"];
 
@@ -37,6 +38,7 @@ const boundaries = getMonthBoundaries();
 
 const Budget = () => {
   const { budgets, transactions, addBudget, updateBudget, deleteBudget, customCategories, isLoading } = useTransactions();
+  const { currency, formatCurrency, budgetAlertThreshold, alertEnabled } = useSettings();
   
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ 
@@ -144,7 +146,7 @@ const Budget = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Amount (₹)</label>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Amount ({currency})</label>
                 <input type="number" value={formData.amount} onChange={(e) => setFormData({...formData, amount: e.target.value})}
                   className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="0.00" required 
                 />
@@ -232,17 +234,24 @@ const Budget = () => {
               </div>
               <div className="flex items-center justify-between mb-1">
                 <h3 className="font-bold text-slate-900 text-lg">{budget.category}</h3>
-                <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${styles.bg} ${styles.text}`}>
-                  {styles.label}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  {alertEnabled && budget.percentage >= budgetAlertThreshold && budget.percentage < 100 && (
+                    <span className="px-2 py-1 rounded-lg text-[9px] font-black uppercase bg-amber-50 text-amber-600 border border-amber-100 flex items-center gap-1 animate-pulse">
+                      ⚠️ Limit Warning
+                    </span>
+                  )}
+                  <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${styles.bg} ${styles.text}`}>
+                    {styles.label}
+                  </span>
+                </div>
               </div>
               <div className="flex items-center gap-1 text-slate-400 text-xs mb-4">
                  <Calendar size={12} /> {budget.startDate && budget.endDate ? `${budget.startDate} to ${budget.endDate}` : "Current Month"}
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm font-bold">
-                  <span className="text-slate-900">₹{budget.spent.toLocaleString()}</span>
-                  <span className="text-slate-400">of ₹{budget.amount.toLocaleString()}</span>
+                  <span className="text-slate-900">{formatCurrency(budget.spent)}</span>
+                  <span className="text-slate-400">of {formatCurrency(budget.amount)}</span>
                 </div>
                 <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                   <motion.div initial={{ width: 0 }} animate={{ width: `${budget.percentage}%` }} className={`h-full rounded-full ${styles.bar}`} />

@@ -9,6 +9,7 @@ import {
   Settings,
   PlusCircle
 } from 'lucide-react';
+import { useSettings } from '../contexts/SettingsContext.jsx';
 
 const NavItem = ({ icon: Icon, label, to, active }) => (
   <Link to={to}>
@@ -27,6 +28,7 @@ const NavItem = ({ icon: Icon, label, to, active }) => (
 // Destructure onAddClick from props here
 const Sidebar = ({ onAddClick }) => {
   const location = useLocation();
+  const { displayName, avatarColor } = useSettings();
 
   return (
     <aside className="w-64 h-screen border-r border-default bg-surface flex flex-col p-4 fixed left-0 top-0 z-50">
@@ -61,7 +63,21 @@ const Sidebar = ({ onAddClick }) => {
       </div>
 
       {/* UTILITY ZONE */}
-      <div className="border-t border-slate-50 pt-4">
+      <div className="border-t border-slate-100 pt-4 space-y-1">
+        {/* User Card */}
+        <div className="px-3 py-2 flex items-center gap-3 mb-1 bg-slate-50/70 border border-slate-50 rounded-2xl">
+          <div 
+            className="w-8 h-8 rounded-full flex items-center justify-center text-white font-extrabold text-xs shadow-sm shrink-0 transition-all duration-300"
+            style={{ backgroundColor: avatarColor }}
+          >
+            {displayName ? displayName.charAt(0).toUpperCase() : 'U'}
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className="text-xs font-bold text-slate-800 truncate">{displayName || 'User'}</span>
+            <span className="text-[9px] text-slate-400 font-semibold truncate">Local Sync</span>
+          </div>
+        </div>
+
         <NavItem icon={Settings} label="Settings" to="/settings" active={location.pathname === '/settings'} />
       </div>
     </aside>

@@ -15,6 +15,7 @@ import {
 import UnifiedTooltip from '../components/ui/UnifiedTooltip.jsx';
 import { format } from 'date-fns';
 import { useTransactions } from '../contexts/TransactionContext.jsx';
+import { useSettings } from '../contexts/SettingsContext.jsx';
 
 
 // -----------------------------------------------------------
@@ -22,6 +23,7 @@ import { useTransactions } from '../contexts/TransactionContext.jsx';
 
 const Dashboard = () => {
   const { transactions, isLoading } = useTransactions();
+  const { formatCurrency, formatDate } = useSettings();
 
   // ==========================================
   // DATA LOGIC (Kept exactly as you wrote it)
@@ -122,7 +124,7 @@ const Dashboard = () => {
             <div>
               <p className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-2">Total Balance</p>
               <h2 className="text-5xl md:text-6xl font-black tracking-tight text-slate-900 tracking-tight">
-                ₹{balance.toLocaleString('en-IN')}
+                {formatCurrency(balance)}
               </h2>
             </div>
             
@@ -132,14 +134,14 @@ const Dashboard = () => {
     className="surface-muted px-6 py-5 min-w-[160px] cursor-pointer"
   >
     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Income</p>
-    <p className="text-2xl font-bold text-emerald-600">₹{totalIncome.toLocaleString('en-IN')}</p>
+    <p className="text-2xl font-bold text-emerald-600">{formatCurrency(totalIncome)}</p>
   </motion.div>
   
   <motion.div 
     className="surface-muted px-6 py-5 min-w-[160px] cursor-pointer"
   >
     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Expenses</p>
-    <p className="text-2xl font-bold text-rose-500">₹{totalExpenses.toLocaleString('en-IN')}</p>
+    <p className="text-2xl font-bold text-rose-500">{formatCurrency(totalExpenses)}</p>
   </motion.div>
   
   <motion.div 
@@ -208,7 +210,7 @@ const Dashboard = () => {
                           <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></span>
                           {cat.name}
                         </span>
-                        <span className="font-semibold text-slate-900">₹{cat.value.toLocaleString('en-IN')}</span>
+                        <span className="font-semibold text-slate-900">{formatCurrency(cat.value)}</span>
                       </div>
                     ))}
                   </div>
@@ -256,13 +258,13 @@ const Dashboard = () => {
                             <div>
                               <p className="font-bold text-slate-800 text-sm md:text-base">{t.title}</p>
                               <p className="text-xs font-medium text-slate-400 mt-0.5">
-                                {t.category} <span className="mx-1">•</span> {format(new Date(t.date), 'MMM dd')}
+                                {t.category} <span className="mx-1">•</span> {formatDate(t.date)}
                               </p>
                             </div>
                           </div>
                           
                           <div className={`font-bold text-right ${isIncome ? 'text-emerald-600' : 'text-slate-800'}`}>
-                            {isIncome ? '+' : '-'}₹{t.amount.toLocaleString('en-IN')}
+                            {isIncome ? '+' : '-'}{formatCurrency(t.amount)}
                           </div>
                         </div>
                       );

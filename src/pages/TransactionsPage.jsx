@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Search, Filter, Trash2, ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTransactions } from '../contexts/TransactionContext.jsx';
+import { useSettings } from '../contexts/SettingsContext.jsx';
 
 // Keeping your original prebuilt categories here for the filter dropdown
 const PREBUILT_CATEGORIES = {
@@ -12,6 +13,7 @@ const PREBUILT_CATEGORIES = {
 
 const TransactionsPage = () => {
   const { transactions, deleteTransaction, customCategories, isLoading } = useTransactions();
+  const { formatCurrency, formatDate } = useSettings();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
@@ -128,7 +130,7 @@ const TransactionsPage = () => {
                           {t.category}
                         </span>
                         <span className="text-xs text-slate-400 font-medium">
-                          {format(new Date(t.date), 'MMM dd, yyyy')}
+                          {formatDate(t.date)}
                         </span>
                       </div>
                     </div>
@@ -136,7 +138,7 @@ const TransactionsPage = () => {
 
                   <div className="flex items-center gap-6">
                     <p className={`font-bold text-lg ${isIncome ? 'text-emerald-600' : 'text-slate-900'}`}>
-                      {isIncome ? '+' : '-'}₹{Number(t.amount).toLocaleString('en-IN')}
+                      {isIncome ? '+' : '-'}{formatCurrency(t.amount)}
                     </p>
                     
                     <button 

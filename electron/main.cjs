@@ -259,4 +259,27 @@ ipcMain.handle("db:deleteCustomCategory", (event, id) => {
   }
 });
 
+// NEW: Clear data handlers
+ipcMain.handle("db:clearTransactions", () => {
+  try {
+    const stmt = db.prepare("DELETE FROM transactions");
+    const result = stmt.run();
+    return { success: true, changes: result.changes };
+  } catch (error) {
+    console.error("Error clearing transactions:", error);
+    throw new Error(`Failed to clear transactions: ${error.message}`);
+  }
+});
+
+ipcMain.handle("db:clearBudgets", () => {
+  try {
+    const stmt = db.prepare("DELETE FROM budgets");
+    const result = stmt.run();
+    return { success: true, changes: result.changes };
+  } catch (error) {
+    console.error("Error clearing budgets:", error);
+    throw new Error(`Failed to clear budgets: ${error.message}`);
+  }
+});
+
 app.whenReady().then(createWindow);

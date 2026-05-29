@@ -21,5 +21,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getCustomCategories: () => ipcRenderer.invoke('db:getCustomCategories'),
     addCustomCategory: (category) => ipcRenderer.invoke('db:addCustomCategory', category),
     deleteCustomCategory: (id) => ipcRenderer.invoke("db:deleteCustomCategory", id),
+    clearTransactions: () => ipcRenderer.invoke('db:clearTransactions'),
+    clearBudgets: () => ipcRenderer.invoke('db:clearBudgets')
   }
 });

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Trash2 } from 'lucide-react'; // Added Trash2 icon
 import { useTransactions } from '../contexts/TransactionContext.jsx';
+import { useSettings } from '../contexts/SettingsContext.jsx';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -13,6 +14,7 @@ const PREBUILT_CATEGORIES = {
 const AddTransactionModal = ({ isOpen, onClose }) => {
   // Added removeCustomCategory here!
   const { addTransaction, customCategories, saveCustomCategory, removeCustomCategory } = useTransactions(); 
+  const { currency } = useSettings();
 
   const [formData, setFormData] = useState({
     title: '',
@@ -130,7 +132,7 @@ date: new Date().toISOString().split('T')[0] });
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Amount (₹)</label>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Amount ({currency})</label>
                   <input type="number" name="amount" value={formData.amount} onChange={handleChange} placeholder="0.00" step="0.01" min="0" required className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all" />
                 </div>
                 <div>
