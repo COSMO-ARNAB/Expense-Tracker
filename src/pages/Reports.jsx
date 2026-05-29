@@ -13,6 +13,8 @@ import {
   LineChart, Line, Area, XAxis, YAxis, CartesianGrid 
 } from 'recharts';
 import { TrendingUp, TrendingDown, PieChart as PieIcon, Activity, Plus } from 'lucide-react';
+// Shared unified tooltip
+import UnifiedTooltip from '../components/ui/UnifiedTooltip.jsx';
 
 // PREMIUM BUTTON IMPORT
 import { Button } from "@/components/ui/Button.jsx";
@@ -396,52 +398,7 @@ const getHeatIntensity = (amount) => {
                     >
                       ₹{stats.expenses.toLocaleString('en-IN')}
                     </text>
-                  <Tooltip
-                    content={({ active, payload, label }) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <div className="bg-slate-950/95 backdrop-blur-xl border border-slate-800 rounded-2xl px-4 py-3 shadow-2xl min-w-[150px]">
-                          
-                            <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500 font-black mb-4">
-                              {label}
-                            </p>
-                        
-                            <div className="space-y-2">
-                        
-                              {payload.map((entry, index) => (
-                                <div
-                                  key={index}
-                                  className="flex items-center justify-between gap-8"
-                                >
-                                  <div className="flex items-center gap-3">
-                              
-                                    <div
-                                      className="w-2.5 h-2.5 rounded-full"
-                                      style={{
-                                        background: entry.color,
-                                        boxShadow: `0 0 12px ${entry.color}`
-                                      }}
-                                    />
-
-                                    <span className="text-sm font-medium text-slate-200">
-                                      {entry.name}
-                                    </span>
-                                  </div>
-                                    
-                                  <span className="text-sm font-black text-white tracking-tight">
-                                    ₹{Number(entry.value).toLocaleString('en-IN')}
-                                  </span>
-                                </div>
-                              ))}
-
-                            </div>
-                          </div>
-                        );
-                      }
-                    
-                      return null;
-                    }}
-                  />
+                  <Tooltip content={<UnifiedTooltip />} cursor={{fill: '#F8FAFC'}} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -532,56 +489,7 @@ const getHeatIntensity = (amount) => {
                                 stroke="rgba(148,163,184,0.10)" />
                   <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
                   <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                  <Tooltip
-  content={({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-slate-950/95 backdrop-blur-xl border border-slate-800 rounded-2xl px-4 py-3 shadow-2xl min-w-[160px]">
-
-          <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500 font-black mb-2">
-            {label}
-          </p>
-
-          <div className="space-y-2">
-
-            {payload
-                .filter((entry, index, self) =>
-                    index === self.findIndex(e => e.dataKey === entry.dataKey)
-                  )
-                .map((entry, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between gap-5 leading-none"
-              >
-                <div className="flex items-center gap-3">
-
-                  <div
-                    className="w-2.5 h-2.5 rounded-full"
-                    style={{
-                      background: entry.color,
-                      boxShadow: `0 0 10px ${entry.color}`
-                    }}
-                  />
-
-                  <span className="text-[13px] font-medium text-slate-200">
-                    {entry.name}
-                  </span>
-                </div>
-
-                <span className="text-[13px] font-black text-white tracking-tight">
-                  ₹{Number(entry.value).toLocaleString('en-IN')}
-                </span>
-              </div>
-            ))}
-
-          </div>
-        </div>
-      );
-    }
-
-    return null;
-  }}
-/>
+                  <Tooltip content={<UnifiedTooltip />} />
                   <Line 
                     type="monotone"
                     dataKey="income"

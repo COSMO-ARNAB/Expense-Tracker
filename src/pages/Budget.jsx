@@ -8,6 +8,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell 
 } from 'recharts';
+import UnifiedTooltip from '../components/ui/UnifiedTooltip.jsx';
 import { useTransactions } from '../contexts/TransactionContext.jsx';
 
 const PREBUILT_CATEGORIES = ["Food", "Transport", "Shopping", "Bills", "Entertainment", "Health", "Education", "Others"];
@@ -187,7 +188,7 @@ const Budget = () => {
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11, fontWeight: 600}} />
               <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11}} />
-              <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)'}} />
+              <Tooltip cursor={{fill: '#f8fafc'}} content={<UnifiedTooltip />} />
               <Bar dataKey="budget" fill="url(#barBudget)" radius={[6, 6, 0, 0]} name="Budget" />
               <Bar dataKey="spent" fill="url(#barSpent)" radius={[6, 6, 0, 0]} name="Spent" />
             </BarChart>
@@ -211,7 +212,7 @@ const Budget = () => {
                   <Cell key={`cell-${index}`} fill={`url(#pieGrad-${index % COLORS.length})`} />
                 ))}
               </Pie>
-              <Tooltip contentStyle={{borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
+              <Tooltip content={<UnifiedTooltip />} />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -228,11 +229,13 @@ const Budget = () => {
               </button>
               <div className="flex justify-between items-start mb-4">
                 <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-600"><Wallet size={20} /></div>
+              </div>
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="font-bold text-slate-900 text-lg">{budget.category}</h3>
                 <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${styles.bg} ${styles.text}`}>
                   {styles.label}
                 </span>
               </div>
-              <h3 className="font-bold text-slate-900 text-lg">{budget.category}</h3>
               <div className="flex items-center gap-1 text-slate-400 text-xs mb-4">
                  <Calendar size={12} /> {budget.startDate && budget.endDate ? `${budget.startDate} to ${budget.endDate}` : "Current Month"}
               </div>

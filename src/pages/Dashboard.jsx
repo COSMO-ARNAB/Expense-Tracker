@@ -12,64 +12,9 @@ import {
   Pie,
   Cell
 } from 'recharts';
+import UnifiedTooltip from '../components/ui/UnifiedTooltip.jsx';
 import { format } from 'date-fns';
 import { useTransactions } from '../contexts/TransactionContext.jsx';
-
-
-// Custom Tooltip for the Bar Chart
-const CustomBarTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-slate-900 p-4 rounded-2xl shadow-xl border border-slate-800 min-w-[160px] z-50">
-        <p className="font-semibold text-xs text-slate-400 uppercase tracking-wider mb-3">{label}</p>
-        <div className="space-y-2">
-          {payload.map((entry, index) => (
-            <div key={index} className="flex items-center justify-between gap-6 text-sm">
-              <span className="flex items-center gap-2 text-slate-300">
-                <span 
-                   className="w-2 h-2 rounded-full"
-                    style={{
-                      backgroundColor:
-                        entry.name === 'Income' ? '#34D399' : '#FB7185',
-                    
-                      boxShadow:
-                        entry.name === 'Income'
-                          ? '0 0 8px rgba(52, 211, 153, 0.45)'
-                          : '0 0 8px rgba(251, 113, 133, 0.45)'
-                    }}
-                ></span>
-                {entry.name}
-              </span>
-              <span className="font-bold text-white">
-                ₹{entry.value.toLocaleString('en-IN')}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-  return null;
-};
-
-// Custom Tooltip for the Pie Chart
-const CustomPieTooltip = ({ active, payload }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-slate-900 px-4 py-3 rounded-xl shadow-xl border border-slate-800 flex items-center gap-3 text-sm z-50">
-        <span 
-          className="w-2 h-2 rounded-full" 
-          style={{ backgroundColor: payload[0].payload.fill }}
-        ></span>
-        <span className="text-slate-300">{payload[0].name}</span>
-        <span className="font-bold text-white ml-2">
-          ₹{payload[0].value.toLocaleString('en-IN')}
-        </span>
-      </div>
-    );
-  }
-  return null;
-};
 
 
 // -----------------------------------------------------------
@@ -235,7 +180,7 @@ const Dashboard = () => {
                       <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 12}} dy={10} />
                       <YAxis axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 12}} />
                       <Tooltip 
-                        content={<CustomBarTooltip />} cursor={{fill: '#F8FAFC'}} />
+                        content={<UnifiedTooltip />} cursor={{fill: '#F8FAFC'}} />
                       <Bar dataKey="income"
                           fill="url(#incomeGradient)"
                           name="Income"
@@ -276,7 +221,7 @@ const Dashboard = () => {
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip content={<CustomPieTooltip />} />
+                      <Tooltip content={<UnifiedTooltip />} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
