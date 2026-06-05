@@ -43,6 +43,12 @@ export const SettingsProvider = ({ children }) => {
   useEffect(() => {
     try {
       localStorage.setItem('expenseos_settings', JSON.stringify(settings));
+      // Toggle compact class on document body
+      if (settings.compactMode) {
+        document.body.classList.add('compact');
+      } else {
+        document.body.classList.remove('compact');
+      }
     } catch (e) {
       console.error('Failed to save settings to localStorage:', e);
     }
@@ -61,6 +67,9 @@ export const SettingsProvider = ({ children }) => {
       ...newSettings,
     }));
   };
+
+  // Helper to dynamically choose between normal and compact layout classes
+  const cx = (normal, compact) => (settings.compactMode ? compact : normal);
 
   // Global formatting utilities
   const formatCurrency = (amount) => {
@@ -99,6 +108,7 @@ export const SettingsProvider = ({ children }) => {
         updateAllSettings,
         formatCurrency,
         formatDate,
+        cx,
       }}
     >
       {children}

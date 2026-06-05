@@ -38,7 +38,7 @@ const boundaries = getMonthBoundaries();
 
 const Budget = () => {
   const { budgets, transactions, addBudget, updateBudget, deleteBudget, customCategories, isLoading } = useTransactions();
-  const { currency, formatCurrency, budgetAlertThreshold, alertEnabled } = useSettings();
+  const { currency, formatCurrency, budgetAlertThreshold, alertEnabled, cx } = useSettings();
   
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ 
@@ -111,34 +111,40 @@ const Budget = () => {
   if (isLoading) return <div className="p-8 text-center text-slate-400 animate-pulse">Loading Budgets...</div>;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="p-8 max-w-7xl mx-auto space-y-8">
+    <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className={cx("p-8 max-w-7xl mx-auto space-y-8", "p-6 max-w-7xl mx-auto space-y-6")}>
       
       {/* HEADER WITH GLOWING MIXED GRADIENT BUTTON */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Budgeting</h1>
-          <p className="text-slate-500 text-sm mt-1">Plan your limits and track distribution.</p>
+          <h1 className={cx("text-3xl font-bold text-slate-900 tracking-tight", "text-xl font-bold text-slate-900 tracking-tight")}>Budgeting</h1>
+          <p className={cx("text-slate-500 text-sm mt-1", "text-slate-500 text-xs mt-0.5")}>Plan your limits and track distribution.</p>
         </div>
         <motion.button 
           whileHover={{ scale: 1.05, boxShadow: "0 0 25px rgba(99, 102, 241, 0.5)" }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setShowForm(!showForm)}
-          className="bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-800 text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2 border border-indigo-400/20"
+          className={cx(
+            "bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-800 text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2 border border-indigo-400/20",
+            "bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-800 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md flex items-center gap-1.5 border border-indigo-400/20"
+          )}
         >
-          {showForm ? 'Cancel' : <><Plus size={18} /> Add Budget</>}
+          {showForm ? 'Cancel' : <><Plus size={cx(18, 14)} /> Add Budget</>}
         </motion.button>
       </div>
 
       <AnimatePresence>
         {showForm && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-            className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl overflow-hidden"
+            className={cx("bg-white p-6 rounded-3xl border border-slate-100 shadow-xl overflow-hidden", "bg-white p-5 rounded-2xl border border-slate-100 shadow-lg overflow-hidden")}
           >
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <form onSubmit={handleSubmit} className={cx("grid grid-cols-1 md:grid-cols-4 gap-4", "grid grid-cols-1 md:grid-cols-4 gap-3")}>
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Category</label>
+                <label className={cx("block text-xs font-bold text-slate-400 uppercase mb-2", "block text-[10px] font-bold text-slate-400 uppercase mb-1")}>Category</label>
                 <select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})}
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                  className={cx(
+                    "w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none",
+                    "w-full p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                  )}
                 >
                   {[...PREBUILT_CATEGORIES, ...customCategories.map(c => c.name)].map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
@@ -146,25 +152,37 @@ const Budget = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Amount ({currency})</label>
+                <label className={cx("block text-xs font-bold text-slate-400 uppercase mb-2", "block text-[10px] font-bold text-slate-400 uppercase mb-1")}>Amount ({currency})</label>
                 <input type="number" value={formData.amount} onChange={(e) => setFormData({...formData, amount: e.target.value})}
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="0.00" required 
+                  className={cx(
+                    "w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none",
+                    "w-full p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                  )} placeholder="0.00" required 
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Start Date</label>
+                <label className={cx("block text-xs font-bold text-slate-400 uppercase mb-2", "block text-[10px] font-bold text-slate-400 uppercase mb-1")}>Start Date</label>
                 <input type="date" value={formData.startDate} onChange={(e) => setFormData({...formData, startDate: e.target.value})}
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" required 
+                  className={cx(
+                    "w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none",
+                    "w-full p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                  )} required 
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">End Date</label>
+                <label className={cx("block text-xs font-bold text-slate-400 uppercase mb-2", "block text-[10px] font-bold text-slate-400 uppercase mb-1")}>End Date</label>
                 <input type="date" value={formData.endDate} onChange={(e) => setFormData({...formData, endDate: e.target.value})}
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" required 
+                  className={cx(
+                    "w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none",
+                    "w-full p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                  )} required 
                 />
               </div>
               <div className="md:col-span-4">
-                <button type="submit" className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition">Save Budget Target</button>
+                <button type="submit" className={cx(
+                  "w-full bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition",
+                  "w-full bg-slate-900 text-white font-bold py-2.5 text-sm rounded-lg hover:bg-slate-800 transition"
+                )}>Save Budget Target</button>
               </div>
             </form>
           </motion.div>
@@ -172,10 +190,10 @@ const Budget = () => {
       </AnimatePresence>
 
       {/* CHARTS */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><BarChart3 size={20} className="text-indigo-500" /> Budget vs Spent</h3>
-          <ResponsiveContainer width="100%" height={300}>
+      <div className={cx("grid grid-cols-1 lg:grid-cols-2 gap-6", "grid grid-cols-1 lg:grid-cols-2 gap-5")}>
+        <div className={cx("bg-white p-6 rounded-3xl border border-slate-100 shadow-sm", "bg-white p-5 rounded-2xl border border-slate-100 shadow-sm")}>
+          <h3 className={cx("text-lg font-bold text-slate-800 mb-6 flex items-center gap-2", "text-sm font-bold text-slate-800 mb-4 flex items-center gap-2")}><BarChart3 size={cx(20, 16)} className="text-indigo-500" /> Budget vs Spent</h3>
+          <ResponsiveContainer width="100%" height={cx(300, 220)}>
             <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="barSpent" x1="0" y1="0" x2="0" y2="1">
@@ -197,9 +215,9 @@ const Budget = () => {
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><PieIcon size={20} className="text-indigo-500" /> Allocation</h3>
-          <ResponsiveContainer width="100%" height={300}>
+        <div className={cx("bg-white p-6 rounded-3xl border border-slate-100 shadow-sm", "bg-white p-5 rounded-2xl border border-slate-100 shadow-sm")}>
+          <h3 className={cx("text-lg font-bold text-slate-800 mb-6 flex items-center gap-2", "text-sm font-bold text-slate-800 mb-4 flex items-center gap-2")}><PieIcon size={cx(20, 16)} className="text-indigo-500" /> Allocation</h3>
+          <ResponsiveContainer width="100%" height={cx(300, 220)}>
             <PieChart>
               <defs>
                 {COLORS.map((color, i) => (
@@ -209,7 +227,7 @@ const Budget = () => {
                   </linearGradient>
                 ))}
               </defs>
-              <Pie data={chartData} cx="50%" cy="50%" innerRadius={70} outerRadius={100} paddingAngle={8} dataKey="budget" stroke="none">
+              <Pie data={chartData} cx="50%" cy="50%" innerRadius={cx(70, 55)} outerRadius={cx(100, 80)} paddingAngle={cx(8, 5)} dataKey="budget" stroke="none">
                 {chartData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={`url(#pieGrad-${index % COLORS.length})`} />
                 ))}
@@ -221,19 +239,19 @@ const Budget = () => {
       </div>
 
       {/* CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className={cx("grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6", "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4.5")}>
         {budgetStats.map((budget) => {
           const styles = getStatusStyles(budget.percentage);
           return (
-            <motion.div key={budget.id} layout className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm group relative">
+            <motion.div key={budget.id} layout className={cx("bg-white p-6 rounded-3xl border border-slate-100 shadow-sm group relative", "bg-white p-5 rounded-2xl border border-slate-100 shadow-sm group relative")}>
               <button onClick={() => deleteBudget(budget.id)} className="absolute top-4 right-4 p-2 text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all">
                 <Trash2 size={16} />
               </button>
-              <div className="flex justify-between items-start mb-4">
-                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-600"><Wallet size={20} /></div>
+              <div className={cx("flex justify-between items-start mb-4", "flex justify-between items-start mb-3")}>
+                <div className={cx("w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-600", "w-8.5 h-8.5 rounded-xl bg-slate-50 flex items-center justify-center text-slate-600")}><Wallet size={cx(20, 17)} /></div>
               </div>
               <div className="flex items-center justify-between mb-1">
-                <h3 className="font-bold text-slate-900 text-lg">{budget.category}</h3>
+                <h3 className={cx("font-bold text-slate-900 text-lg", "font-bold text-slate-900 text-sm")}>{budget.category}</h3>
                 <div className="flex items-center gap-1.5">
                   {alertEnabled && budget.percentage >= budgetAlertThreshold && budget.percentage < 100 && (
                     <span className="px-2 py-1 rounded-lg text-[9px] font-black uppercase bg-amber-50 text-amber-600 border border-amber-100 flex items-center gap-1 animate-pulse">
@@ -245,15 +263,15 @@ const Budget = () => {
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-1 text-slate-400 text-xs mb-4">
-                 <Calendar size={12} /> {budget.startDate && budget.endDate ? `${budget.startDate} to ${budget.endDate}` : "Current Month"}
+              <div className={cx("flex items-center gap-1 text-slate-400 text-xs mb-4", "flex items-center gap-1 text-slate-400 text-xs mb-3")}>
+                 <Calendar size={cx(12, 11)} /> {budget.startDate && budget.endDate ? `${budget.startDate} to ${budget.endDate}` : "Current Month"}
               </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm font-bold">
+              <div className={cx("space-y-2", "space-y-1.5")}>
+                <div className={cx("flex justify-between text-sm font-bold", "flex justify-between text-xs font-bold")}>
                   <span className="text-slate-900">{formatCurrency(budget.spent)}</span>
                   <span className="text-slate-400">of {formatCurrency(budget.amount)}</span>
                 </div>
-                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                <div className={cx("w-full bg-slate-100 rounded-full h-2 overflow-hidden", "w-full bg-slate-100 rounded-full h-1.5 overflow-hidden")}>
                   <motion.div initial={{ width: 0 }} animate={{ width: `${budget.percentage}%` }} className={`h-full rounded-full ${styles.bar}`} />
                 </div>
               </div>

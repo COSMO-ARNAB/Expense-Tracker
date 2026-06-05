@@ -24,24 +24,53 @@ const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 
 const Reports = () => {
   const { transactions, isLoading } = useTransactions();
-  const { formatCurrency, formatDate } = useSettings();
+  const { formatCurrency, formatDate, cx } = useSettings();
   const [timeframe, setTimeframe] = useState('Monthly'); // Weekly, Monthly, Yearly
 
-  // 1. STRICT DATE FILTERING (Fixes the 2023 "Ghost Data" bug)
+  // 1. DYNAMIC DATE FILTERING (Anchors to the latest transaction date)
   const filteredData = useMemo(() => {
-    const now = new Date(); // Evaluates to Current Date (e.g., May 2026)
-    let interval;
+    let anchorDate = new Date();
+    if (transactions && transactions.length > 0) {
+      const validDates = transactions
+        .map(t => new Date(t.date))
+        .filter(d => !isNaN(d.getTime()));
+      if (validDates.length > 0) {
+        anchorDate = new Date(Math.max(...validDates));
+      }
+    }
 
+    let interval;
     if (timeframe === 'Weekly') {
-      interval = { start: startOfWeek(now), end: endOfWeek(now) };
+      interval = { start: startOfWeek(anchorDate), end: endOfWeek(anchorDate) };
     } else if (timeframe === 'Monthly') {
-      interval = { start: startOfMonth(now), end: endOfMonth(now) };
+      interval = { start: startOfMonth(anchorDate), end: endOfMonth(anchorDate) };
     } else {
-      interval = { start: startOfYear(now), end: endOfYear(now) };
+      interval = { start: startOfYear(anchorDate), end: endOfYear(anchorDate) };
     }
 
     return transactions.filter(t => isWithinInterval(new Date(t.date), interval))
                        .sort((a, b) => new Date(b.date) - new Date(a.date)); // Newest first
+  }, [transactions, timeframe]);
+
+  // Determine user-friendly description of the displayed period
+  const activePeriodText = useMemo(() => {
+    let anchorDate = new Date();
+    if (transactions && transactions.length > 0) {
+      const validDates = transactions
+        .map(t => new Date(t.date))
+        .filter(d => !isNaN(d.getTime()));
+      if (validDates.length > 0) {
+        anchorDate = new Date(Math.max(...validDates));
+      }
+    }
+
+    if (timeframe === 'Weekly') {
+      return `week of ${format(startOfWeek(anchorDate), 'MMM dd, yyyy')}`;
+    } else if (timeframe === 'Monthly') {
+      return format(anchorDate, 'MMMM yyyy');
+    } else {
+      return format(anchorDate, 'yyyy');
+    }
   }, [transactions, timeframe]);
 
   // 2. AGGREGATE DATA (Cards & Charts)
@@ -85,10 +114,18 @@ const Reports = () => {
 
   const heatmapData = useMemo(() => {
     const last30Days = [];
-    const today = new Date();
+    let today = new Date();
+    if (transactions && transactions.length > 0) {
+      const validDates = transactions
+        .map(t => new Date(t.date))
+        .filter(d => !isNaN(d.getTime()));
+      if (validDates.length > 0) {
+        today = new Date(Math.max(...validDates));
+      }
+    }
 
     for (let i = 29; i >= 0; i--) {
-      const date = new Date();
+      const date = new Date(today);
       date.setDate(today.getDate() - i);
 
       const formatted = format(date, 'yyyy-MM-dd');
@@ -97,23 +134,23 @@ const Reports = () => {
         return (
           t.type.toLowerCase() === 'expense' &&
           format(new Date(t.date), 'yyyy-MM-dd') === formatted
+        );
+      });
+
+      const total = dayTransactions.reduce(
+        (sum, t) => sum + Number(t.amount),
+        0
       );
-    });
 
-    const total = dayTransactions.reduce(
-      (sum, t) => sum + Number(t.amount),
-      0
-    );
+      last30Days.push({
+        date,
+        formatted,
+        total
+      });
+    }
 
-    last30Days.push({
-      date,
-      formatted,
-      total
-    });
-  }
-
-  return last30Days;
-}, [transactions]); // Switched to use full transactions for accurate 30-day lookback
+    return last30Days;
+  }, [transactions]); // Switched to use full transactions for accurate 30-day lookback
 
 const getHeatIntensity = (amount) => {
   if (amount === 0) return 'bg-slate-100';
@@ -133,7 +170,7 @@ const getHeatIntensity = (amount) => {
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="p-8 pt-12 max-w-7xl mx-auto space-y-8" // pt-12 fixes the top border touching
+      className={cx("p-8 pt-12 max-w-7xl mx-auto space-y-8", "p-6 pt-9 max-w-7xl mx-auto space-y-6")} // pt-12 fixes the top border touching
     >
       {/* HEADER SECTION */}
       <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-4 overflow-hidden">
@@ -145,60 +182,48 @@ const getHeatIntensity = (amount) => {
         </div>
         
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+          <h1 className={cx("text-3xl font-bold text-slate-900 tracking-tight", "text-xl font-bold text-slate-900 tracking-tight")}>
             Financial Reports
           </h1>
         
-          <p className="text-slate-500 text-sm">
-            Showing activity for the current {timeframe.toLowerCase()}.
+          <p className={cx("text-slate-500 text-sm", "text-slate-500 text-xs")}>
+            Showing activity for {activePeriodText}.
           </p>
         </div>
         {/* TIMEFRAME TOGGLE & ACTION BUTTON */}
         <div className="flex items-center gap-4 pr-3">
-          <div className="bg-slate-100 p-2 rounded-2xl flex gap-1 shadow-inner border border-slate-200">
+          <div className={cx("bg-slate-100 p-2 rounded-2xl flex gap-1 shadow-inner border border-slate-200", "bg-slate-100 p-1.5 rounded-2xl flex gap-1 shadow-inner border border-slate-200")}>
             {['Weekly', 'Monthly', 'Yearly'].map(t => (
             <Button
               variant={timeframe === t ? "secondary" : "ghost"}
               size="sm"
               key={t}
               onClick={() => setTimeframe(t)}
-              className={`px-[17px] py-4 rounded-xl text-xs font-bold transition-all ${
-                timeframe === t
-                  ? 'bg-white text-indigo-600 shadow-sm border border-slate-100'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
+              className={cx(
+                `px-[17px] py-4 rounded-xl text-xs font-bold transition-all ${
+                  timeframe === t
+                    ? 'bg-white text-indigo-600 shadow-sm border border-slate-100'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`,
+                `px-[13px] py-2 rounded-xl text-[10.5px] font-bold transition-all ${
+                  timeframe === t
+                    ? 'bg-white text-indigo-600 shadow-sm border border-slate-100'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`
+              )}
             >
               {t}
             </Button>
             ))}
           </div>
 
-          {/* <Button
-            className="
-              h-10
-              rounded-3xl
-              px-8
-              text-white
-              font-semibold
-              bg-gradient-to-r
-              from-indigo-500
-              via-violet-500
-              to-purple-600
-              shadow-[0_10px_28px_rgba(99,102,241,0.35)]
-              hover:brightness-220
-              hover:scale-[1.02]
-              transition-all
-              duration-400
-              border-0
-            "
-          >
-            <Plus size={18} />
-            New Report
-          </Button> */}
           <Button
-            className="liquid-accent text-white h-10 rounded-2xl px-8 py-5 flex items-center justify-center gap-3 text-sm font-bold"
+            className={cx(
+              "liquid-accent text-white h-10 rounded-2xl px-8 py-5 flex items-center justify-center gap-3 text-sm font-bold",
+              "liquid-accent text-white h-9 rounded-xl px-5 py-3 flex items-center justify-center gap-2.5 text-xs font-bold"
+            )}
           >
-            <Plus size={18} />
+            <Plus size={cx(18, 14)} />
             New Report
           </Button>
           
@@ -206,63 +231,62 @@ const getHeatIntensity = (amount) => {
       </div>
 
       {/* REPORTS INTELLIGENCE HEADER */}
-<div className="grid grid-cols-1 xl:grid-cols-[1.4fr_0.9fr] gap-6">
+<div className={cx("grid grid-cols-1 xl:grid-cols-[1.4fr_0.9fr] gap-6", "grid grid-cols-1 xl:grid-cols-[1.4fr_0.9fr] gap-5")}>
 
   {/* PRIMARY INSIGHT PANEL */}
-  <div className="surface-prominent p-8 relative overflow-hidden">
+  <div className={cx("surface-prominent p-8 relative overflow-hidden", "surface-prominent p-6 relative overflow-hidden")}>
 
     {/* Ambient glow */}
     <div className="absolute top-0 right-0 w-72 h-72 bg-indigo-500/10 blur-3xl rounded-full pointer-events-none" />
 
     <div className="relative z-10">
 
-      <div className="flex items-center justify-between mb-10">
+      <div className={cx("flex items-center justify-between mb-10", "flex items-center justify-between mb-6")}>
         <div>
           <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400 font-black mb-3">
             Financial Intelligence
           </p>
 
-          <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">
+          <h2 className={cx("text-3xl md:text-4xl font-black tracking-tight text-slate-900", "text-2xl md:text-3xl font-black tracking-tight text-slate-900")}>
             {stats.savings < 0 ? `-${formatCurrency(Math.abs(stats.savings))}` : formatCurrency(stats.savings)}
           </h2>
 
-          <p className="text-slate-500 mt-3 text-sm max-w-md leading-relaxed">
+          <p className={cx("text-slate-500 mt-3 text-sm max-w-md leading-relaxed", "text-slate-500 mt-2 text-xs max-w-md leading-normal")}>
             {stats.savings >= 0
               ? `You're operating at a positive savings flow this ${timeframe.toLowerCase()}.`
               : `Your expenses exceeded income this ${timeframe.toLowerCase()}.`}
           </p>
         </div>
 
-        <div className={`p-4 rounded-2xl ${
-          stats.savings >= 0
-            ? 'bg-emerald-100 text-emerald-600'
-            : 'bg-rose-100 text-rose-600'
-        }`}>
+        <div className={cx(
+          `p-4 rounded-2xl ${stats.savings >= 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`,
+          `p-2.5 rounded-xl ${stats.savings >= 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`
+        )}>
           {stats.savings >= 0
-            ? <TrendingUp size={28} />
-            : <TrendingDown size={28} />}
+            ? <TrendingUp size={cx(28, 22)} />
+            : <TrendingDown size={cx(28, 22)} />}
         </div>
       </div>
 
       {/* Bottom metrics */}
       <div className="grid grid-cols-2 gap-4">
 
-        <div className="surface-muted p-5">
+        <div className={cx("surface-muted p-5", "surface-muted p-4")}>
           <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black mb-2">
             Income
           </p>
 
-          <p className="text-2xl font-black text-emerald-600 tracking-tight">
+          <p className={cx("text-2xl font-black text-emerald-600 tracking-tight", "text-xl font-black text-emerald-600 tracking-tight")}>
             {formatCurrency(stats.income)}
           </p>
         </div>
 
-        <div className="surface-muted p-5">
+        <div className={cx("surface-muted p-5", "surface-muted p-4")}>
           <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black mb-2">
             Expenses
           </p>
 
-          <p className="text-2xl font-black text-rose-600 tracking-tight">
+          <p className={cx("text-2xl font-black text-rose-600 tracking-tight", "text-xl font-black text-rose-600 tracking-tight")}>
             {formatCurrency(stats.expenses)}
           </p>
         </div>
@@ -271,15 +295,15 @@ const getHeatIntensity = (amount) => {
   </div>
 
   {/* KPI ANALYTICS STACK */}
-  <div className="grid grid-cols-1 gap-5">
+  <div className={cx("grid grid-cols-1 gap-5", "grid grid-cols-1 gap-4")}>
 
-    <div className="surface-card p-6">
+    <div className={cx("surface-card p-6", "surface-card p-4.5")}>
       <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black mb-3">
         Savings Rate
       </p>
 
       <div className="flex items-end justify-between">
-        <h3 className="text-3xl font-black tracking-tight text-slate-900">
+        <h3 className={cx("text-3xl font-black tracking-tight text-slate-900", "text-xl font-black tracking-tight text-slate-900")}>
           {stats.income > 0
             ? `${Math.max(0, ((stats.savings / stats.income) * 100)).toFixed(0)}%`
             : '0%'}
@@ -289,20 +313,19 @@ const getHeatIntensity = (amount) => {
       </div>
     </div>
 
-    <div className="surface-card p-6">
+    <div className={cx("surface-card p-6", "surface-card p-4.5")}>
       <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black mb-3">
         Financial Status
       </p>
 
-      <h3 className={`text-2xl font-black tracking-tight ${
-        stats.savings >= 0
-          ? 'text-emerald-600'
-          : 'text-rose-600'
-      }`}>
+      <h3 className={cx(
+        `text-2xl font-black tracking-tight ${stats.savings >= 0 ? 'text-emerald-600' : 'text-rose-600'}`,
+        `text-base font-black tracking-tight ${stats.savings >= 0 ? 'text-emerald-600' : 'text-rose-600'}`
+      )}>
         {stats.savings >= 0 ? 'Healthy' : 'Overspending'}
       </h3>
 
-      <p className="text-sm text-slate-500 mt-2">
+      <p className={cx("text-sm text-slate-500 mt-2", "text-xs text-slate-500 mt-1")}>
         Based on current {timeframe.toLowerCase()} activity.
       </p>
     </div>
@@ -310,7 +333,7 @@ const getHeatIntensity = (amount) => {
 </div>
 
       {/* CHART SECTION */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className={cx("grid grid-cols-1 lg:grid-cols-2 gap-8", "grid grid-cols-1 lg:grid-cols-2 gap-5.5")}>
         
         {/* Pie Chart: Expenses by Category */}
         
@@ -318,38 +341,38 @@ const getHeatIntensity = (amount) => {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
-            className="surface-card p-8"
+            className={cx("surface-card p-8", "surface-card p-5.5")}
           >
-          <div className="flex items-start justify-between mb-8">
+          <div className={cx("flex items-start justify-between mb-8", "flex items-start justify-between mb-5")}>
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <PieIcon size={18} className="text-indigo-500" />
+                  <PieIcon size={cx(18, 15)} className="text-indigo-500" />
 
                   <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 font-black">
                     Spending Analysis
                   </p>
                 </div>
 
-                <h3 className="text-2xl font-black tracking-tight text-slate-900 mb-2">
+                <h3 className={cx("text-2xl font-black tracking-tight text-slate-900 mb-2", "text-lg font-black tracking-tight text-slate-900 mb-1.5")}>
                   Expenses by Category
                 </h3>
 
-                <p className="text-sm text-slate-500 max-w-sm leading-relaxed">
+                <p className={cx("text-sm text-slate-500 max-w-sm leading-relaxed", "text-xs text-slate-500 max-w-sm leading-normal")}>
                   Analyze how your spending distribution shifts across categories during this {timeframe.toLowerCase()} cycle.
                 </p>
               </div>
 
-              <div className="surface-muted px-4 py-3">
+              <div className={cx("surface-muted px-4 py-3", "surface-muted px-3.5 py-2")}>
                 <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400 font-black mb-1">
                   Categories
                 </p>
 
-                <p className="text-xl font-black text-slate-900">
+                <p className={cx("text-xl font-black text-slate-900", "text-sm font-black text-slate-900")}>
                   {stats.pieData.length}
                 </p>
               </div>
             </div>
-          <div className="h-[300px]">
+          <div className={cx("h-[300px]", "h-[220px]")}>
             {stats.pieData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -357,9 +380,9 @@ const getHeatIntensity = (amount) => {
                     data={stats.pieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={85}
-                    outerRadius={130}
-                    paddingAngle={4}
+                    innerRadius={cx(85, 60)}
+                    outerRadius={cx(130, 95)}
+                    paddingAngle={cx(4, 3)}
                     dataKey="value"
                     isAnimationActive={true}
                     animationBegin={0}
@@ -383,7 +406,7 @@ const getHeatIntensity = (amount) => {
                   </Pie>
                     <text
                       x="50%"
-                      y="46%"
+                      y={cx("46%", "44%")}
                       textAnchor="middle"
                       dominantBaseline="middle"
                       className="fill-slate-400 text-[11px] font-black uppercase tracking-[0.18em]"
@@ -393,10 +416,10 @@ const getHeatIntensity = (amount) => {
                                       
                     <text
                       x="50%"
-                      y="56%"
+                      y={cx("56%", "56%")}
                       textAnchor="middle"
                       dominantBaseline="middle"
-                      className="fill-slate-900 text-2xl font-black"
+                      className={cx("fill-slate-900 text-2xl font-black", "fill-slate-900 text-lg font-black")}
                     >
                       {formatCurrency(stats.expenses)}
                     </text>
@@ -414,38 +437,38 @@ const getHeatIntensity = (amount) => {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, delay: 0.08 }}
-            className="surface-card p-8"
+            className={cx("surface-card p-8", "surface-card p-5.5")}
           >
-         <div className="flex items-start justify-between mb-8">
+         <div className={cx("flex items-start justify-between mb-8", "flex items-start justify-between mb-5")}>
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <Activity size={18} className="text-indigo-500" />
+                  <Activity size={cx(18, 15)} className="text-indigo-500" />
 
                   <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 font-black">
                     Cash Flow Analysis
                   </p>
                 </div>
 
-                <h3 className="text-2xl font-black tracking-tight text-slate-900 mb-2">
+                <h3 className={cx("text-2xl font-black tracking-tight text-slate-900 mb-2", "text-lg font-black tracking-tight text-slate-900 mb-1.5")}>
                   Income vs Expenses Trend
                 </h3>
 
-                <p className="text-sm text-slate-500 max-w-sm leading-relaxed">
+                <p className={cx("text-sm text-slate-500 max-w-sm leading-relaxed", "text-xs text-slate-500 max-w-sm leading-normal")}>
                   Track financial momentum and compare how income and expenses evolve throughout this {timeframe.toLowerCase()} period.
                 </p>
               </div>
 
-              <div className="surface-muted px-4 py-3">
+              <div className={cx("surface-muted px-4 py-3", "surface-muted px-3.5 py-2")}>
                 <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400 font-black mb-1">
                   Trend Points
                 </p>
 
-                <p className="text-xl font-black text-slate-900">
+                <p className={cx("text-xl font-black text-slate-900", "text-sm font-black text-slate-900")}>
                   {stats.trendData.length}
                 </p>
               </div>
             </div>
-          <div className="h-[300px]">
+          <div className={cx("h-[300px]", "h-[220px]")}>
             {stats.trendData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
@@ -539,34 +562,55 @@ const getHeatIntensity = (amount) => {
       </div>
 
       {/* NEW: GITHUB STYLE 30-DAY HEATMAP RENDER */}
-      <div className="surface-card p-6 mt-8 mb-6 border border-slate-100 rounded-3xl shadow-sm bg-white">
-        <h3 className="text-[11px] uppercase tracking-[0.18em] text-slate-400 font-black mb-4">30-Day Spending Intensity</h3>
-        <div className="flex gap-1.5 overflow-x-auto pb-2">
+      <div className={cx(
+        "surface-card p-6 mt-8 mb-6 border border-slate-100 rounded-3xl shadow-sm bg-white",
+        "surface-card p-5 mt-5 mb-5 border border-slate-100 rounded-2xl shadow-sm bg-white"
+      )}>
+        <h3 className={cx(
+          "text-[11px] uppercase tracking-[0.18em] text-slate-400 font-black mb-4",
+          "text-[10.5px] uppercase tracking-[0.18em] text-slate-400 font-black mb-3"
+        )}>30-Day Spending Intensity</h3>
+        <div className={cx("flex gap-1.5 overflow-x-auto pb-2", "flex gap-1.2 overflow-x-auto pb-1.5")}>
           {heatmapData.map((day, i) => (
             <div 
               key={i} 
-              className={`w-6 h-6 rounded-md shrink-0 transition-all duration-300 hover:scale-110 cursor-help ${getHeatIntensity(day.total)}`} 
+              className={cx(
+                `w-6 h-6 rounded-md shrink-0 transition-all duration-300 hover:scale-110 cursor-help ${getHeatIntensity(day.total)}`,
+                `w-5 h-5 rounded-md shrink-0 transition-all duration-300 hover:scale-110 cursor-help ${getHeatIntensity(day.total)}`
+              )} 
               title={`${day.formatted}: Spent ${formatCurrency(day.total)}`} 
             />
           ))}
         </div>
       </div>
 
-      <div className="surface-prominent p-5 flex flex-wrap items-center gap-3 text-sm">
+      <div className={cx(
+        "surface-prominent p-5 flex flex-wrap items-center gap-3 text-sm",
+        "surface-prominent p-4 flex flex-wrap items-center gap-3 text-xs"
+      )}>
 
         <span className="text-slate-400 font-semibold uppercase tracking-[0.16em] text-[10px]">
           Insights
         </span>
                 
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-50 text-indigo-700 font-semibold">
+        <div className={cx(
+          "flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-50 text-indigo-700 font-semibold",
+          "flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 font-semibold text-[11px]"
+        )}>
           Highest spend in {stats.pieData[0]?.name || 'N/A'}
         </div>
                 
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 font-semibold">
+        <div className={cx(
+          "flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 font-semibold",
+          "flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 font-semibold text-[11px]"
+        )}>
           Savings {stats.savings < 0 ? `-${formatCurrency(Math.abs(stats.savings))}` : formatCurrency(stats.savings)}
         </div>
                 
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-50 text-rose-700 font-semibold">
+        <div className={cx(
+          "flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-50 text-rose-700 font-semibold",
+          "flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-rose-50 text-rose-700 font-semibold text-[11px]"
+        )}>
           Expenses {formatCurrency(stats.expenses)}
         </div>
       </div>
@@ -581,27 +625,29 @@ const getHeatIntensity = (amount) => {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22, delay: index * 0.02 }}
-      className="flex items-center justify-between py-4 px-2 rounded-xl hover:bg-slate-50/70 transition-colors duration-200"
+      className={cx(
+        "flex items-center justify-between py-4 px-2 rounded-xl hover:bg-slate-50/70 transition-colors duration-200",
+        "flex items-center justify-between py-3 px-2 rounded-lg hover:bg-slate-50/70 transition-colors duration-200"
+      )}
     >
 
       {/* LEFT */}
-      <div className="flex items-center gap-3 min-w-0">
+      <div className={cx("flex items-center gap-3 min-w-0", "flex items-center gap-2.5 min-w-0")}>
 
         <div
-          className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-            t.type.toLowerCase() === 'income'
-              ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.45)]'
-              : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.35)]'
-          }`}
+          className={cx(
+            `w-2.5 h-2.5 rounded-full shrink-0 ${t.type.toLowerCase() === 'income' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.45)]' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.35)]'}`,
+            `w-1.5 h-1.5 rounded-full shrink-0 ${t.type.toLowerCase() === 'income' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.45)]' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.35)]'}`
+          )}
         />
 
         <div className="min-w-0">
 
-          <h4 className="text-sm font-semibold text-slate-900 truncate">
+          <h4 className={cx("text-sm font-semibold text-slate-900 truncate", "text-xs font-semibold text-slate-900 truncate")}>
             {t.title}
           </h4>
 
-          <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-400">
+          <div className={cx("flex items-center gap-2 mt-0.5 text-xs text-slate-400", "flex items-center gap-1.5 mt-0 text-[10px] text-slate-400")}>
 
             <span>
               {format(new Date(t.date), 'MMM dd, yyyy')}
@@ -617,11 +663,10 @@ const getHeatIntensity = (amount) => {
 
       {/* RIGHT */}
       <div
-        className={`text-sm font-bold tracking-tight ${
-          t.type.toLowerCase() === 'income'
-            ? 'text-emerald-600'
-            : 'text-slate-900'
-        }`}
+        className={cx(
+          `text-sm font-bold tracking-tight ${t.type.toLowerCase() === 'income' ? 'text-emerald-600' : 'text-slate-900'}`,
+          `text-sm font-bold tracking-tight ${t.type.toLowerCase() === 'income' ? 'text-emerald-600' : 'text-slate-900'}`
+        )}
       >
         {t.type.toLowerCase() === 'income' ? '+' : '-'}
         {formatCurrency(t.amount)}

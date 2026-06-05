@@ -1,26 +1,29 @@
 // src/pages/Settings.jsx
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  User, 
-  Settings as SettingsIcon, 
-  Palette, 
-  Tag, 
-  Bell, 
-  Database, 
-  Trash2, 
-  Download, 
-  Upload, 
-  Plus, 
-  Check, 
+import {
+  User,
+  Settings as SettingsIcon,
+  Palette,
+  Tag,
+  Bell,
+  Database,
+  Trash2,
+  Download,
+  Upload,
+  Plus,
+  Check,
   AlertTriangle,
   Info,
   Globe,
   Calendar,
-  Sparkles
+  Sparkles,
+  RefreshCw
 } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useTransactions } from '../contexts/TransactionContext';
+import { useUpdate } from '../contexts/UpdateContext';
+import UpdateSettingsSection from '../components/update/UpdateSettingsSection';
 
 // Harmonious avatar color options
 const AVATAR_COLORS = [
@@ -41,27 +44,29 @@ const PREBUILT_CATEGORIES = {
 };
 
 const Settings = () => {
-  const { 
+  const {
     displayName, avatarColor, currency, locale, dateFormat,
     budgetAlertThreshold, alertEnabled, compactMode, defaultCategory, defaultTransactionType,
-    updateSetting, updateAllSettings, formatCurrency
+    updateSetting, updateAllSettings
   } = useSettings();
 
-  const { 
-    customCategories, saveCustomCategory, removeCustomCategory, 
+  const {
+    customCategories, saveCustomCategory, removeCustomCategory,
     transactions, budgets
   } = useTransactions();
 
+  const { state: updateState, actions: updateActions } = useUpdate();
+
   const [activeTab, setActiveTab] = useState('profile');
-  
+
   // Custom Category form state
   const [newCatName, setNewCatName] = useState('');
   const [newCatType, setNewCatType] = useState('Expense');
-  
+
   // Database reset modal states
   const [showClearTxModal, setShowClearTxModal] = useState(false);
   const [showClearBudgetModal, setShowClearBudgetModal] = useState(false);
-  
+
   // Toast notifications for premium feedback
   const [toast, setToast] = useState(null);
   const fileInputRef = useRef(null);
@@ -81,12 +86,12 @@ const Settings = () => {
         triggerToast("No transactions found to export", "warning");
         return;
       }
-      
+
       const headers = 'ID,Title,Amount,Category,Type,Date\n';
-      const rows = txs.map(t => 
+      const rows = txs.map(t =>
         `"${t.id}","${t.title.replace(/"/g, '""')}",${t.amount},"${t.category}","${t.type}","${t.date}"`
       ).join('\n');
-      
+
       const csvContent = headers + rows;
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -96,7 +101,7 @@ const Settings = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       triggerToast("CSV exported successfully!");
     } catch (e) {
       console.error(e);
@@ -109,9 +114,9 @@ const Settings = () => {
       const txs = await window.electronAPI.db.getTransactions();
       const bds = await window.electronAPI.db.getBudgets();
       const cats = await window.electronAPI.db.getCustomCategories();
-      
+
       const backupData = {
-        version: "1.0.0",
+        version: updateState.info.appVersion || "1.0.0",
         exportDate: new Date().toISOString(),
         transactions: txs || [],
         budgets: bds || [],
@@ -131,7 +136,7 @@ const Settings = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       triggerToast("JSON backup exported successfully!");
     } catch (e) {
       console.error(e);
@@ -194,7 +199,7 @@ const Settings = () => {
         }
 
         triggerToast(`Imported: ${importedTxs} transactions, ${importedBudgets} budgets, ${importedCats} categories!`);
-        
+
         // Reload page data in the React state after a short delay
         setTimeout(() => {
           window.location.reload();
@@ -259,17 +264,17 @@ const Settings = () => {
 
   return (
     <div className="p-8 max-w-6xl mx-auto relative">
-      
+
       {/* TOAST SYSTEM */}
       <AnimatePresence>
         {toast && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             className={`fixed top-6 right-6 z-[9999] px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 border text-sm font-semibold
-              ${toast.type === 'error' ? 'bg-rose-50 border-rose-100 text-rose-600' : 
-                toast.type === 'warning' ? 'bg-amber-50 border-amber-100 text-amber-600' : 
+              ${toast.type === 'error' ? 'bg-rose-50 border-rose-100 text-rose-600' :
+                toast.type === 'warning' ? 'bg-amber-50 border-amber-100 text-amber-600' :
                 'bg-indigo-50 border-indigo-100 text-indigo-600'}`}
           >
             {toast.type === 'error' ? <AlertTriangle size={18} /> : <Check size={18} />}
@@ -288,7 +293,7 @@ const Settings = () => {
       </div>
 
       <div className="flex flex-col md:flex-row gap-8 items-start">
-        
+
         {/* LEFT TAB NAVIGATION */}
         <div className="w-full md:w-64 bg-white border border-slate-100 rounded-3xl p-3 shadow-sm space-y-1">
           {[
@@ -296,7 +301,8 @@ const Settings = () => {
             { id: 'appearance', label: 'Appearance', icon: Palette },
             { id: 'categories', label: 'Categories', icon: Tag },
             { id: 'alerts', label: 'Budget Alerts', icon: Bell },
-            { id: 'data', label: 'Data Management', icon: Database }
+            { id: 'data', label: 'Data Management', icon: Database },
+            { id: 'updates', label: 'Updates', icon: RefreshCw }
           ].map((tab) => {
             const TabIcon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -308,8 +314,8 @@ const Settings = () => {
                   ${isActive ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}
               >
                 {isActive && (
-                  <motion.div 
-                    layoutId="activeTabIndicator" 
+                  <motion.div
+                    layoutId="activeTabIndicator"
                     className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-indigo-600 rounded-full"
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
                   />
@@ -324,7 +330,7 @@ const Settings = () => {
         {/* RIGHT CONTENT WORKSPACE */}
         <div className="flex-1 w-full bg-white border border-slate-100 rounded-3xl p-8 shadow-sm min-h-[500px]">
           <AnimatePresence mode="wait">
-            
+
             {/* TABS CONTAINER */}
             <motion.div
               key={activeTab}
@@ -333,7 +339,7 @@ const Settings = () => {
               exit={{ opacity: 0, x: -10 }}
               transition={{ duration: 0.2 }}
             >
-              
+
               {/* TAB 1: PROFILE */}
               {activeTab === 'profile' && (
                 <div className="space-y-6">
@@ -344,7 +350,7 @@ const Settings = () => {
 
                   {/* LIVE PREVIEW BANNER */}
                   <div className="bg-slate-50/70 border border-slate-100 rounded-2xl p-6 flex items-center gap-5">
-                    <div 
+                    <div
                       className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-black shadow-md border-4 border-white transition-all duration-300"
                       style={{ backgroundColor: avatarColor }}
                     >
@@ -360,8 +366,8 @@ const Settings = () => {
                     {/* Display Name Input */}
                     <div>
                       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Display Name</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={displayName}
                         onChange={(e) => updateSetting('displayName', e.target.value)}
                         placeholder="Arnab"
@@ -382,7 +388,7 @@ const Settings = () => {
                             title={color}
                           >
                             {avatarColor === color && (
-                              <motion.div 
+                              <motion.div
                                 layoutId="activeColorCheck"
                                 className="absolute inset-0 flex items-center justify-center bg-black/10 rounded-full text-white"
                               >
@@ -412,16 +418,16 @@ const Settings = () => {
                         <Sparkles size={12} className="text-indigo-500" />
                         Currency Symbol
                       </label>
-                      <select 
+                      <select
                         value={currency}
                         onChange={(e) => updateSetting('currency', e.target.value)}
                         className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold cursor-pointer"
                       >
-                        <option value="₹">₹ (INR)</option>
+                        <option value="Γé╣">Γé╣ (INR)</option>
                         <option value="$">$ (USD)</option>
-                        <option value="€">€ (EUR)</option>
-                        <option value="£">£ (GBP)</option>
-                        <option value="¥">¥ (JPY)</option>
+                        <option value="Γé¼">Γé¼ (EUR)</option>
+                        <option value="┬ú">┬ú (GBP)</option>
+                        <option value="┬Ñ">┬Ñ (JPY)</option>
                       </select>
                     </div>
 
@@ -431,16 +437,16 @@ const Settings = () => {
                         <Globe size={12} className="text-indigo-500" />
                         Locale Formatting
                       </label>
-                      <select 
+                      <select
                         value={locale}
                         onChange={(e) => updateSetting('locale', e.target.value)}
                         className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold cursor-pointer"
                       >
-                        <option value="en-IN">en-IN (e.g. ₹1,00,000.00)</option>
+                        <option value="en-IN">en-IN (e.g. Γé╣1,00,000.00)</option>
                         <option value="en-US">en-US (e.g. $100,000.00)</option>
-                        <option value="en-GB">en-GB (e.g. £100,000.00)</option>
-                        <option value="de-DE">de-DE (e.g. €100.000,00)</option>
-                        <option value="fr-FR">fr-FR (e.g. €100 000,00)</option>
+                        <option value="en-GB">en-GB (e.g. ┬ú100,000.00)</option>
+                        <option value="de-DE">de-DE (e.g. Γé¼100.000,00)</option>
+                        <option value="fr-FR">fr-FR (e.g. Γé¼100 000,00)</option>
                       </select>
                     </div>
 
@@ -450,7 +456,7 @@ const Settings = () => {
                         <Calendar size={12} className="text-indigo-500" />
                         Date Format
                       </label>
-                      <select 
+                      <select
                         value={dateFormat}
                         onChange={(e) => updateSetting('dateFormat', e.target.value)}
                         className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold cursor-pointer"
@@ -471,7 +477,7 @@ const Settings = () => {
                         onClick={() => updateSetting('compactMode', !compactMode)}
                         className={`w-12 h-6 rounded-full p-0.5 transition-colors focus:outline-none ${compactMode ? 'bg-indigo-600' : 'bg-slate-300'}`}
                       >
-                        <motion.div 
+                        <motion.div
                           layout
                           className="w-5 h-5 bg-white rounded-full shadow-md"
                           animate={{ x: compactMode ? 24 : 0 }}
@@ -495,8 +501,8 @@ const Settings = () => {
                   <form onSubmit={handleAddCategory} className="bg-slate-50 border border-slate-100 rounded-2xl p-5 flex flex-col md:flex-row gap-4 items-end">
                     <div className="flex-1 w-full">
                       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Category Name</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={newCatName}
                         onChange={(e) => setNewCatName(e.target.value)}
                         placeholder="e.g. Crypto, Gym, Pet Food"
@@ -506,7 +512,7 @@ const Settings = () => {
 
                     <div className="w-full md:w-48">
                       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Type</label>
-                      <select 
+                      <select
                         value={newCatType}
                         onChange={(e) => setNewCatType(e.target.value)}
                         className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold cursor-pointer"
@@ -516,7 +522,7 @@ const Settings = () => {
                       </select>
                     </div>
 
-                    <button 
+                    <button
                       type="submit"
                       className="w-full md:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-indigo-100 transition-all cursor-pointer"
                     >
@@ -533,12 +539,12 @@ const Settings = () => {
                       {customCategories.filter(c => c.type === 'Expense').length > 0 ? (
                         <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-2">
                           {customCategories.filter(c => c.type === 'Expense').map(c => (
-                            <div 
-                              key={c.id} 
+                            <div
+                              key={c.id}
                               className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-100 text-xs font-bold text-slate-700 group transition-all"
                             >
                               <span>{c.name}</span>
-                              <button 
+                              <button
                                 onClick={() => removeCustomCategory(c.id)}
                                 className="text-slate-300 hover:text-rose-500 rounded p-0.5 group-hover:scale-105 transition-transform"
                                 title={`Delete ${c.name}`}
@@ -559,12 +565,12 @@ const Settings = () => {
                       {customCategories.filter(c => c.type === 'Income').length > 0 ? (
                         <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-2">
                           {customCategories.filter(c => c.type === 'Income').map(c => (
-                            <div 
-                              key={c.id} 
+                            <div
+                              key={c.id}
                               className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-100 text-xs font-bold text-slate-700 group transition-all"
                             >
                               <span>{c.name}</span>
-                              <button 
+                              <button
                                 onClick={() => removeCustomCategory(c.id)}
                                 className="text-slate-300 hover:text-rose-500 rounded p-0.5 group-hover:scale-105 transition-transform"
                                 title={`Delete ${c.name}`}
@@ -585,7 +591,7 @@ const Settings = () => {
                     {/* Default Category selector */}
                     <div>
                       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Default Input Category</label>
-                      <select 
+                      <select
                         value={defaultCategory}
                         onChange={(e) => updateSetting('defaultCategory', e.target.value)}
                         className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold cursor-pointer"
@@ -600,7 +606,7 @@ const Settings = () => {
                     {/* Default type selector */}
                     <div>
                       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Default Transaction Type</label>
-                      <select 
+                      <select
                         value={defaultTransactionType}
                         onChange={(e) => updateSetting('defaultTransactionType', e.target.value)}
                         className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold cursor-pointer"
@@ -632,7 +638,7 @@ const Settings = () => {
                         onClick={() => updateSetting('alertEnabled', !alertEnabled)}
                         className={`w-12 h-6 rounded-full p-0.5 transition-colors focus:outline-none ${alertEnabled ? 'bg-indigo-600' : 'bg-slate-300'}`}
                       >
-                        <motion.div 
+                        <motion.div
                           layout
                           className="w-5 h-5 bg-white rounded-full shadow-md"
                           animate={{ x: alertEnabled ? 24 : 0 }}
@@ -657,10 +663,10 @@ const Settings = () => {
 
                       <div className="flex items-center gap-4">
                         <span className="text-xs font-bold text-slate-400">50%</span>
-                        <input 
-                          type="range" 
-                          min="50" 
-                          max="100" 
+                        <input
+                          type="range"
+                          min="50"
+                          max="100"
                           step="5"
                           value={budgetAlertThreshold}
                           onChange={(e) => updateSetting('budgetAlertThreshold', parseInt(e.target.value))}
@@ -700,7 +706,7 @@ const Settings = () => {
                         <h4 className="text-sm font-bold text-slate-800 mb-1">Export to CSV</h4>
                         <p className="text-slate-400 text-[11px]">Download fully structured spreadsheet-friendly transaction records.</p>
                       </div>
-                      <button 
+                      <button
                         onClick={handleExportCSV}
                         className="w-full mt-4 py-2 bg-indigo-50/70 group-hover:bg-indigo-600 text-indigo-600 group-hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
                       >
@@ -715,9 +721,9 @@ const Settings = () => {
                       </div>
                       <div>
                         <h4 className="text-sm font-bold text-slate-800 mb-1">Full JSON Backup</h4>
-                        <p className="text-slate-400 text-[11px]">Download everything — transactions, categories, budgets, and settings.</p>
+                        <p className="text-slate-400 text-[11px]">Download everything ΓÇö transactions, categories, budgets, and settings.</p>
                       </div>
-                      <button 
+                      <button
                         onClick={handleExportJSON}
                         className="w-full mt-4 py-2 bg-indigo-50/70 group-hover:bg-indigo-600 text-indigo-600 group-hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
                       >
@@ -734,14 +740,14 @@ const Settings = () => {
                         <h4 className="text-sm font-bold text-slate-800 mb-1">Restore Backup</h4>
                         <p className="text-slate-400 text-[11px]">Merge transaction records and saved preferences from a JSON backup file.</p>
                       </div>
-                      <input 
-                        type="file" 
+                      <input
+                        type="file"
                         accept=".json"
                         ref={fileInputRef}
                         onChange={handleImportJSON}
                         className="hidden"
                       />
-                      <button 
+                      <button
                         onClick={() => fileInputRef.current?.click()}
                         className="w-full mt-4 py-2 bg-indigo-50/70 group-hover:bg-indigo-600 text-indigo-600 group-hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
                       >
@@ -757,10 +763,10 @@ const Settings = () => {
                       Destructive Danger Zone
                     </h3>
                     <p className="text-slate-400 text-[11px] mb-5">These actions delete direct records from your SQLite database. This is permanent and irreversible.</p>
-                    
+
                     <div className="flex flex-col md:flex-row gap-4">
                       {/* Clear Transactions */}
-                      <button 
+                      <button
                         onClick={() => setShowClearTxModal(true)}
                         className="flex-1 px-4 py-3 border border-rose-200 hover:bg-rose-50 text-rose-600 rounded-xl text-xs font-bold transition-colors cursor-pointer text-center"
                       >
@@ -768,7 +774,7 @@ const Settings = () => {
                       </button>
 
                       {/* Clear Budgets */}
-                      <button 
+                      <button
                         onClick={() => setShowClearBudgetModal(true)}
                         className="flex-1 px-4 py-3 border border-rose-200 hover:bg-rose-50 text-rose-600 rounded-xl text-xs font-bold transition-colors cursor-pointer text-center"
                       >
@@ -777,12 +783,24 @@ const Settings = () => {
                     </div>
                   </div>
 
-                  {/* App Version Info */}
+                  {/* App Version Info — sourced from electron-updater */}
                   <div className="pt-6 flex justify-between items-center text-[11px] font-semibold text-slate-400">
                     <span>Engine: React 19 + Electron</span>
-                    <span>Database: SQLite (offline) v1.0.0</span>
+                    <span>
+                      Database: SQLite (offline) v{updateState.info.appVersion || '1.0.0'}
+                      {updateState.info.channel && updateState.info.channel !== 'latest' && (
+                        <span className="ml-2 px-2 py-0.5 bg-amber-50 text-amber-600 rounded-full text-[10px]">
+                          channel: {updateState.info.channel}
+                        </span>
+                      )}
+                    </span>
                   </div>
                 </div>
+              )}
+
+              {/* TAB 6: UPDATES */}
+              {activeTab === 'updates' && (
+                <UpdateSettingsSection state={updateState} actions={updateActions} />
               )}
 
             </motion.div>
@@ -795,7 +813,7 @@ const Settings = () => {
         {showClearTxModal && (
           <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
             {/* Overlay */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -803,7 +821,7 @@ const Settings = () => {
               className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
             />
             {/* Modal Box */}
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
@@ -841,7 +859,7 @@ const Settings = () => {
         {showClearBudgetModal && (
           <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
             {/* Overlay */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -849,7 +867,7 @@ const Settings = () => {
               className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
             />
             {/* Modal Box */}
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}

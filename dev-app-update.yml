@@ -1,0 +1,7 @@
+provider: github
+owner: COSMO-ARNAB
+repo: Expense-Tracker
+# In dev the updater loads this config but does not contact GitHub unless
+# a real release exists. Override `url` to test against a local HTTP server:
+#   npx http-server release -p 8080
+#   url: http://localhost:8080

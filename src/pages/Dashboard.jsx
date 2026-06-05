@@ -23,7 +23,7 @@ import { useSettings } from '../contexts/SettingsContext.jsx';
 
 const Dashboard = () => {
   const { transactions, isLoading } = useTransactions();
-  const { formatCurrency, formatDate } = useSettings();
+  const { formatCurrency, formatDate, cx } = useSettings();
 
   // ==========================================
   // DATA LOGIC (Kept exactly as you wrote it)
@@ -105,64 +105,64 @@ const Dashboard = () => {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="min-h-screen bg-slate-50 text-slate-900 pb-12 font-sans"
+      className={cx("min-h-screen bg-slate-50 text-slate-900 pb-12 font-sans", "min-h-screen bg-slate-50 text-slate-900 pb-8 font-sans")}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className={cx("max-w-7xl mx-auto px-4 sm:px-6 lg:px-8", "max-w-7xl mx-auto px-4 sm:px-5")}>
         
         {/* 1. TOPBAR */}
-        <header className="py-8 flex justify-between items-center">
+        <header className={cx("py-8 flex justify-between items-center", "py-5.5 flex justify-between items-center")}>
           <h1 className="text-xl font-semibold tracking-tight text-slate-800">Overview</h1>
           <div className="text-sm font-medium text-slate-400 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
             {format(new Date(), 'MMMM yyyy')}
           </div>
         </header>
 
-        <div className="space-y-8">
+        <div className={cx("space-y-8", "space-y-6")}>
           
           {/* 2. HERO SECTION */}
-          <section className="surface-prominent p-8 md:p-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+          <section className={cx("surface-prominent p-8 md:p-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8", "surface-prominent p-6 md:p-7 flex flex-col md:flex-row justify-between items-start md:items-center gap-5")}>
             <div>
-              <p className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-2">Total Balance</p>
-              <h2 className="text-5xl md:text-6xl font-black tracking-tight text-slate-900 tracking-tight">
+              <p className={cx("text-sm font-semibold text-slate-400 uppercase tracking-widest mb-2", "text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1.5")}>Total Balance</p>
+              <h2 className={cx("text-5xl md:text-6xl font-black tracking-tight text-slate-900 tracking-tight", "text-4xl md:text-5xl font-black tracking-tight text-slate-900")}>
                 {formatCurrency(balance)}
               </h2>
             </div>
             
             {/* Quick Insights Row (Inside Hero) */}
-<div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+<div className={cx("flex flex-col sm:flex-row gap-4 w-full md:w-auto", "flex flex-col sm:flex-row gap-3 w-full md:w-auto")}>
   <motion.div 
-    className="surface-muted px-6 py-5 min-w-[160px] cursor-pointer"
+    className={cx("surface-muted px-6 py-5 min-w-[160px] cursor-pointer", "surface-muted px-5 py-3.5 min-w-[140px] cursor-pointer")}
   >
     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Income</p>
-    <p className="text-2xl font-bold text-emerald-600">{formatCurrency(totalIncome)}</p>
+    <p className={cx("text-2xl font-bold text-emerald-600", "text-xl font-bold text-emerald-600")}>{formatCurrency(totalIncome)}</p>
   </motion.div>
   
   <motion.div 
-    className="surface-muted px-6 py-5 min-w-[160px] cursor-pointer"
+    className={cx("surface-muted px-6 py-5 min-w-[160px] cursor-pointer", "surface-muted px-5 py-3.5 min-w-[140px] cursor-pointer")}
   >
     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Expenses</p>
-    <p className="text-2xl font-bold text-rose-500">{formatCurrency(totalExpenses)}</p>
+    <p className={cx("text-2xl font-bold text-rose-500", "text-xl font-bold text-rose-500")}>{formatCurrency(totalExpenses)}</p>
   </motion.div>
   
   <motion.div 
-    className="surface-muted px-6 py-5 min-w-[160px] hidden lg:block cursor-pointer"
+    className={cx("surface-muted px-6 py-5 min-w-[160px] hidden lg:block cursor-pointer", "surface-muted px-5 py-3.5 min-w-[140px] hidden lg:block cursor-pointer")}
   >
     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Top Expense</p>
-    <p className="text-2xl font-bold text-slate-800">{topCategory.name}</p>
+    <p className={cx("text-2xl font-bold text-slate-800", "text-xl font-bold text-slate-800")}>{topCategory.name}</p>
   </motion.div>
 </div>
           </section>
 
           {/* 3. ANALYTICS & FEED (12-Column Grid) */}
-          <section className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+          <section className={cx("grid grid-cols-1 xl:grid-cols-12 gap-8", "grid grid-cols-1 xl:grid-cols-12 gap-5.5")}>
             
             {/* LEFT COLUMN: Charts (8 cols) */}
-            <div className="xl:col-span-8 space-y-8">
+            <div className={cx("xl:col-span-8 space-y-8", "xl:col-span-8 space-y-6")}>
               
               {/* Main Spending Chart */}
-              <div className="surface-prominent p-8">
-                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-[0.18em] mb-6">Cash Flow Trend</h3>
-                <div className="h-[300px] w-full">
+              <div className={cx("surface-prominent p-8", "surface-prominent p-5")}>
+                <h3 className={cx("text-xs font-semibold text-slate-400 uppercase tracking-[0.18em] mb-6", "text-xs font-semibold text-slate-400 uppercase tracking-[0.18em] mb-4")}>Cash Flow Trend</h3>
+                <div className={cx("h-[300px] w-full", "h-[230px] w-full")}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                       <defs>
@@ -199,11 +199,11 @@ const Dashboard = () => {
               </div>
 
               {/* Secondary Chart: Category Split */}
-              <div className="surface-prominent p-8 flex flex-col md:flex-row items-center gap-8">
+              <div className={cx("surface-prominent p-8 flex flex-col md:flex-row items-center gap-8", "surface-prominent p-5 flex flex-col md:flex-row items-center gap-5")}>
                 <div className="w-full md:w-1/2">
                   <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-[0.18em] mb-2">Spending by Category</h3>
-                  <p className="text-slate-400 text-sm mb-6">Your highest expenses this period.</p>
-                  <div className="space-y-3">
+                  <p className={cx("text-slate-400 text-sm mb-6", "text-slate-400 text-xs mb-4")}>Your highest expenses this period.</p>
+                  <div className={cx("space-y-3", "space-y-2")}>
                     {categoryData.slice(0, 4).map((cat, index) => (
                       <div key={cat.name} className="flex justify-between items-center text-sm">
                         <span className="flex items-center gap-2 text-slate-700">
@@ -215,7 +215,7 @@ const Dashboard = () => {
                     ))}
                   </div>
                 </div>
-                <div className="w-full md:w-1/2 h-[200px]">
+                <div className={cx("w-full md:w-1/2 h-[200px]", "w-full md:w-1/2 h-[160px]")}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie data={categoryData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
@@ -232,12 +232,12 @@ const Dashboard = () => {
             </div>
 
             {/* RIGHT COLUMN: Activity Feed (4 cols) */}
-            <div className="xl:col-span-4 space-y-6">
+            <div className={cx("xl:col-span-4 space-y-6", "xl:col-span-4 space-y-4")}>
               <div className="flex justify-between items-end px-2">
                 <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-[0.18em]">Recent Activity</h3>
               </div>
               
-              <div className="surface-prominent p-2">
+              <div className={cx("surface-prominent p-2", "surface-prominent p-1.5")}>
                 {recentTransactions.length > 0 ? (
                   <div className="flex flex-col">
                     {recentTransactions.map((t, index) => {
@@ -245,19 +245,23 @@ const Dashboard = () => {
                       return (
                         <div 
                           key={t.id} 
-                          className={`flex items-center justify-between p-4 rounded-2xl transition-colors hover:bg-slate-50/80/ ${index !== recentTransactions.length - 1 ? 'border-b border-slate-50' : ''}`}
+                          className={cx(
+                            `flex items-center justify-between p-4 rounded-2xl transition-colors hover:bg-slate-50/80/ ${index !== recentTransactions.length - 1 ? 'border-b border-slate-50' : ''}`,
+                            `flex items-center justify-between p-3 rounded-xl transition-colors hover:bg-slate-50/80/ ${index !== recentTransactions.length - 1 ? 'border-b border-slate-100/50' : ''}`
+                          )}
                         >
-                          <div className="flex items-center gap-4">
+                          <div className={cx("flex items-center gap-4", "flex items-center gap-3.5")}>
                             {/* Smart Initial Avatar */}
-                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-bold
-                              ${isIncome ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-600'}`}
-                            >
+                            <div className={cx(
+                              `w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-bold ${isIncome ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-600'}`,
+                              `w-10 h-10 rounded-xl flex items-center justify-center text-base font-bold ${isIncome ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-600'}`
+                            )}>
                               {t.category ? t.category.charAt(0).toUpperCase() : '?'}
                             </div>
                             
                             <div>
-                              <p className="font-bold text-slate-800 text-sm md:text-base">{t.title}</p>
-                              <p className="text-xs font-medium text-slate-400 mt-0.5">
+                              <p className={cx("font-bold text-slate-800 text-sm md:text-base", "font-bold text-slate-800 text-sm")}>{t.title}</p>
+                              <p className={cx("text-xs font-medium text-slate-400 mt-0.5", "text-xs font-medium text-slate-400 mt-0.5")}>
                                 {t.category} <span className="mx-1">•</span> {formatDate(t.date)}
                               </p>
                             </div>

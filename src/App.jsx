@@ -9,23 +9,29 @@ import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import { TransactionProvider } from './contexts/TransactionContext.jsx';
 import { SettingsProvider } from './contexts/SettingsContext.jsx';
+import { UpdateProvider } from './contexts/UpdateContext.jsx';
+import UpdateHost from './components/update/UpdateHost';
 
 function App() {
   return (
     <SettingsProvider>
       <TransactionProvider>
-        <Router>
-          {/* MainLayout handles the Sidebar and the main scrolling area */}
-          <MainLayout>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/transactions" element={<Transactions />} />
-              <Route path="/budget" element={<Budgets />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/settings" element={<Settings />} />
-            </Routes>
-          </MainLayout>
-        </Router>
+        <UpdateProvider>
+          <Router>
+            {/* MainLayout handles the Sidebar and the main scrolling area */}
+            <MainLayout>
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/transactions" element={<Transactions />} />
+                <Route path="/budget" element={<Budgets />} />
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/settings" element={<Settings />} />
+              </Routes>
+            </MainLayout>
+            {/* UpdateHost renders modals/progress toasts on top of every page */}
+            <UpdateHost />
+          </Router>
+        </UpdateProvider>
       </TransactionProvider>
     </SettingsProvider>
   );

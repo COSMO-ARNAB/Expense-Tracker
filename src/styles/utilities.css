@@ -147,3 +147,19 @@
 
   transform: translateY(-2px);
 }
+
+/* =========================================
+   COMPACT MODE OVERRIDES
+   ========================================= */
+
+body.compact .surface-card {
+  border-radius: 18px;
+}
+
+body.compact .surface-prominent {
+  border-radius: 22px;
+}
+
+body.compact .surface-muted {
+  border-radius: 16px;
+}

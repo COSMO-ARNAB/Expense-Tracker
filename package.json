@@ -1,14 +1,18 @@
 {
   "name": "expense-tracker",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
+    "postinstall": "electron-builder install-app-deps",
     "electron": "electron .",
     "dev": "concurrently \"vite\" \"wait-on http://localhost:3000 && electron .\"",
     "build": "vite build",
     "dist": "npm run build && electron-builder",
+    "release": "npm run build && electron-builder --publish always",
+    "release:dir": "npm run build && electron-builder --publish never",
+    "release:beta": "npm run build && electron-builder --config electron-builder.beta.yml --publish always",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -20,8 +24,10 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "electron-log": "^5.4.4",
     "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^9.0.0",
+    "electron-updater": "^6.8.3",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.16.0",
     "react": "^19.2.5",
@@ -67,6 +73,21 @@
     ],
     "win": {
       "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Expense Tracker"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "COSMO-ARNAB",
+      "repo": "Expense-Tracker",
+      "releaseType": "release"
     },
     "icon": "build/Bar.ico"
   }

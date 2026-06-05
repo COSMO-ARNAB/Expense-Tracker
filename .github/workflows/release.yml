@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Release channel (latest or beta)'
+        required: true
+        default: 'latest'
+        type: choice
+        options:
+          - latest
+          - beta
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & publish on ${{ github.ref_name }}
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Determine channel
+        id: channel
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ inputs.channel }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.ref_name }}" == *"-beta"* ]]; then
+            echo "value=beta" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=latest" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build & publish
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          if [ "${{ steps.channel.outputs.value }}" = "beta" ]; then
+            npm run release:beta
+          else
+            npm run release
+          fi
+
+      - name: Upload artifacts (fallback)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: |
+            release/*.exe
+            release/latest.yml
+            release/beta.yml
+            release/*.blockmap
+          if-no-files-found: warn
+          retention-days: 14

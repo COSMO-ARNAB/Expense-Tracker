@@ -1,0 +1,33 @@
+# electron-builder.beta.yml
+# Dedicated config for beta-channel releases. Pass via:
+#   electron-builder --config electron-builder.beta.yml --publish always
+# This file is intentionally a near-mirror of the package.json#build block,
+# with the single difference that `publish.channel` is "beta" — which causes
+# electron-builder to write `beta.yml` (not `latest.yml`) and to upload it
+# alongside the installer. Stable users on `latest.yml` are NOT affected.
+appId: com.expensetracker.app
+productName: Expense Tracker
+directories:
+  output: release
+files:
+  - dist/**/*
+  - electron/**/*
+  - database/**/*
+  - package.json
+win:
+  target: nsis
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Expense Tracker
+publish:
+  provider: github
+  owner: COSMO-ARNAB
+  repo: Expense-Tracker
+  channel: beta
+  releaseType: release
+icon: build/Bar.ico

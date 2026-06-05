@@ -5,9 +5,16 @@ const fs = require("fs");
 // Connects electron to SQLite database
 const db = require("../database/db.cjs");
 
+const { initAutoUpdater, check, download, install, setPrefs, getStatus, getInfo } = require("./updater.cjs");
+
 // Use app userData directory for storing data
 const userDataPath = app.getPath("userData");
 const storePath = path.join(userDataPath, "store.json");
+const updatePrefsPath = path.join(userDataPath, "update-prefs.json");
+
+// Establish Windows app user model id early (required for proper taskbar
+// grouping and to enable auto-update notifications on Windows).
+app.setAppUserModelId("com.expensetracker.app");
 
 // Simple file-based store (kept for app settings/configuration)
 class SimpleStore {
@@ -53,6 +60,8 @@ class SimpleStore {
 
 const store = new SimpleStore(storePath);
 
+let mainWindow = null;
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
@@ -65,6 +74,8 @@ function createWindow() {
     },
     icon: path.join(__dirname, '../src/assets/Bar-nobg.png')
   });
+
+  mainWindow = win;
 
   if (app.isPackaged) {
     win.loadFile(path.join(__dirname, "../dist/index.html"));
@@ -183,7 +194,6 @@ ipcMain.handle("db:addBudget", (event, budget) => {
   }
 });
 
-// NEW: Update Budget Handler
 ipcMain.handle("db:updateBudget", (event, id, budget) => {
   try {
     const stmt = db.prepare(`
@@ -243,7 +253,7 @@ ipcMain.handle("db:addCustomCategory", (event, category) => {
     stmt.run(category.id, category.name, category.type);
     return { success: true };
   } catch (error) {
-    console.error("Error adding custom category:", error);
+    console.error("Error adding category:", error);
     throw new Error(`Failed to add category: ${error.message}`);
   }
 });
@@ -254,12 +264,11 @@ ipcMain.handle("db:deleteCustomCategory", (event, id) => {
     stmt.run(id);
     return { success: true };
   } catch (error) {
-    console.error("Error deleting custom category:", error);
+    console.error("Error deleting category:", error);
     throw new Error(`Failed to delete category: ${error.message}`);
   }
 });
 
-// NEW: Clear data handlers
 ipcMain.handle("db:clearTransactions", () => {
   try {
     const stmt = db.prepare("DELETE FROM transactions");
@@ -282,4 +291,59 @@ ipcMain.handle("db:clearBudgets", () => {
   }
 });
 
+// ============================================
+// AUTO-UPDATE IPC HANDLERS
+// ============================================
+
+ipcMain.handle("app:info", async () => {
+  try { return getInfo(); }
+  catch (err) { return { error: err && err.message }; }
+});
+
+ipcMain.handle("update:check", async () => {
+  try { return await check(); }
+  catch (err) { return { ok: false, error: { code: 'unknown', message: err && err.message } }; }
+});
+
+ipcMain.handle("update:download", async () => {
+  try { return await download(); }
+  catch (err) { return { ok: false, error: { code: 'unknown', message: err && err.message } }; }
+});
+
+ipcMain.handle("update:install", async () => {
+  try { return install(); }
+  catch (err) { return { ok: false, error: { code: 'unknown', message: err && err.message } }; }
+});
+
+ipcMain.handle("update:status", async () => {
+  try { return getStatus(); }
+  catch (err) { return { status: null, info: null, prefs: {}, error: err && err.message }; }
+});
+
+ipcMain.handle("update:set-channel", async (event, channel) => {
+  try { return await setPrefs({ channel }); }
+  catch (err) { return { ok: false, error: err && err.message }; }
+});
+
+ipcMain.handle("update:set-auto-download", async (event, value) => {
+  try { return await setPrefs({ autoDownload: !!value }); }
+  catch (err) { return { ok: false, error: err && err.message }; }
+});
+
+ipcMain.handle("update:set-prefs", async (event, prefs) => {
+  try { return await setPrefs(prefs || {}); }
+  catch (err) { return { ok: false, error: err && err.message }; }
+});
+
 app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  initAutoUpdater({ getMainWindow: () => mainWindow, prefsPath: updatePrefsPath });
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+});
